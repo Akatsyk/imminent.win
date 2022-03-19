@@ -906,47 +906,41 @@ namespace Interfaces
 		// check if we have a local player and he is alive.
 		bool alive = !local->IsDead();
 
-		static bool bThirdPerson = false;
+		bool bThirdPerson = false;
 
-		if (alive) {
+		if (!g_Vars.misc.third_person || !g_Vars.misc.third_person_bind.enabled) {
+			bThirdPerson = false;
+		}
+
+		if (g_Vars.misc.third_person && g_Vars.misc.third_person_bind.enabled) {
+
+			if (!alive) {
+				bThirdPerson = false;
+				Interfaces::m_pInput->CAM_ToFirstPerson();
+				return;
+			}
+
 			C_WeaponCSBaseGun* Weapon = (C_WeaponCSBaseGun*)m_movement_data->m_pLocal->m_hActiveWeapon().Get();
-
-			if (!Weapon)
+			if (!Weapon) 
 				return;
 
 			auto weaponInfo = Weapon->GetCSWeaponData();
-			if (!weaponInfo.IsValid())
+			if (!weaponInfo.IsValid()) 
 				return;
 
 			if (weaponInfo->m_iWeaponType == WEAPONTYPE_GRENADE && g_Vars.misc.third_person_on_grenade) {
+				bThirdPerson = false;
 				Interfaces::m_pInput->CAM_ToFirstPerson();
-				Interfaces::m_pInput->m_fCameraInThirdPerson = false;
 				return;
 			}
+
+			bThirdPerson = true;
+
 		}
 
-		// camera should be in thirdperson.
-		if (g_Vars.misc.third_person && g_Vars.misc.third_person_bind.enabled) {
-
-			// if alive and not in thirdperson already switch to thirdperson.
-			if (alive && !Interfaces::m_pInput->CAM_IsThirdPerson()) {
-				Interfaces::m_pInput->CAM_ToThirdPerson();
-			}
-
-			// if dead and spectating in firstperson switch to thirdperson.
-			else if (m_movement_data->m_pLocal->m_iObserverMode() == 4) {
-
-				// if in thirdperson, switch to firstperson.
-				// we need to disable thirdperson to spectate properly.
-				if (Interfaces::m_pInput->CAM_IsThirdPerson()) {
-					Interfaces::m_pInput->CAM_ToFirstPerson();
-				}
-
-				m_movement_data->m_pLocal->m_iObserverMode() = 5;
-			}
+		if (bThirdPerson){
+			Interfaces::m_pInput->CAM_ToThirdPerson();
 		}
-
-		// camera should be in firstperson.
 		else {
 			Interfaces::m_pInput->CAM_ToFirstPerson();
 		}

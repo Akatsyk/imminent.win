@@ -198,6 +198,17 @@ namespace Engine
 				}
 
 				auto& lag_data = Engine::LagCompensation::Get()->GetLagData(player->m_entIndex);
+				if (!lag_data.IsValid()) {
+					this->m_Shapshots.erase(it->snapshot);
+					it = this->m_Weaponfire.erase(it);
+					continue;
+				}
+
+				// synth to prompto
+				// good job boy
+				// you deserve a treat
+				// https://cdn.discordapp.com/attachments/901716045956538378/954611934559371324/Desktop_2022.03.18_-_22.25.48.26.DVR_Trim.mp4
+
 				if (player->IsDead()) {
 					this->m_Shapshots.erase(it->snapshot);
 					it = this->m_Weaponfire.erase(it);
@@ -244,36 +255,45 @@ namespace Engine
 
 					if (g_Vars.esp.event_resolver) {
 
-						if (!bCanMiss)
-							return;
-
 						if (td->is_resolver_issue) {
+							//if (best_damage->hitgroup == it->snapshot->Hitgroup && it->snapshot->Hitbox == HITBOX_HEAD) {
+							//	
+								AddMissLog(tfm::format(XorStr("resolver: %s"), g_ResolverData[it->snapshot->playerIdx].m_sResolverMode));
 
-							if (it->snapshot->ResolverType == EResolverModes::RESOLVE_PRED)
-								lag_data->m_iMissedShotsLBY++;
-							else
-								lag_data->m_iMissedShots++;
+								if (it->snapshot->ResolverType == EResolverModes::RESOLVE_PRED)
+									lag_data->m_iMissedShotsLBY++;
+								else
+									lag_data->m_iMissedShots++;
 
-							AddMissLog(tfm::format(XorStr("resolver: %s"), g_ResolverData[it->snapshot->playerIdx].m_sResolverMode)); // config issue
+							//}
+							//else if (best_damage->hitgroup == it->snapshot->Hitgroup && it->snapshot->Hitbox != HITBOX_HEAD) {
+							//	AddMissLog(XorStr("aimbot miscalculation"));
+							//}
+							//else {
+							//	AddMissLog(XorStr("spread mismatch"));
+							//}
 						}
 						else if (aimpoint_distance > impact_distance) { // config issue
 							AddMissLog(XorStr("occlusion"));
 						}
-						else if (!td->is_resolver_issue) { // config issue
-							AddMissLog(XorStr("spread"));
-						}
 						else if (bPredictionError) { // config issue
 							AddMissLog(XorStr("prediction error"));
 						}
-						else if (bImpacted) { // config issue
+						else if (!bImpacted) { // aka uid issue
 							AddMissLog(XorStr("client side"));
 						}
+						else if (!td->is_resolver_issue) { // config issue
+							AddMissLog(XorStr("spread"));
+						}
+						else {
+							AddMissLog(XorStr("unknown"));
+						}
 
-						bCanMiss = false;
 					}
 
 				}
 				else {
+
 					bool shoud_break = false;
 					auto best_damage = it->damage.end();
 					auto dmg = it->damage.begin();

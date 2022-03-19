@@ -193,79 +193,109 @@ namespace Menu {
 				} GUI::Group::EndGroup();
 			}
 
-			if (GUI::Form::BeginTab(1, XorStr("B")) || GUI::ctx->setup)
-			{
-				GUI::Group::BeginGroup(XorStr("Anti aim"), Vector2D(50, 100));
+			if (GUI::Form::BeginTab(1, XorStr("B")) || GUI::ctx->setup) {
+				CVariables::ANTIAIM_STATE* settings = &g_Vars.antiaim_stand;
+
+				GUI::Group::BeginGroup(XorStr("Real anti-aim"), Vector2D(50, 50));
 				{
-					CVariables::ANTIAIM_STATE* settings = &g_Vars.antiaim_stand;
-					// enable AA.
 					GUI::Controls::Checkbox(XorStr("Enabled##aa"), &g_Vars.antiaim.enabled);
-					{
-						// yaw / pitch / fake.
-						GUI::Controls::Dropdown(XorStr("Pitch"), { XorStr("Off"), XorStr("Down"), XorStr("Up"), XorStr("Zero") }, &settings->pitch);
-						GUI::Controls::Dropdown(XorStr("Real yaw"), { XorStr("Off"), XorStr("180"), XorStr("180z"), XorStr("Freestand") }, &settings->base_yaw);
-						GUI::Controls::Dropdown(XorStr("Fake yaw"), { XorStr("Off"), XorStr("Twist"), XorStr("Static") }, &settings->yaw);
+					GUI::Controls::Dropdown(XorStr("Pitch"), { XorStr("Off"), XorStr("Down"), XorStr("Up"), XorStr("Zero") }, &settings->pitch);
 
-						// static lets choose our own value.
-						if (settings->yaw == 2) {
-							GUI::Controls::Slider(XorStr("Break angle"), &g_Vars.antiaim.break_lby, -145, 145);
-						}
+					if (GUI::Controls::Checkbox(XorStr("Manual AA"), &g_Vars.antiaim.manual) || GUI::ctx->setup) {
+						GUI::Controls::ColorPicker(XorStr("Manual color"), &g_Vars.antiaim.manual_color);
+						GUI::Controls::Label(XorStr("Left"));
+						GUI::Controls::Hotkey(XorStr("Left key##key"), &g_Vars.antiaim.manual_left_bind, false);
 
-						if (settings->base_yaw == 0) {}
+						GUI::Controls::Label(XorStr("Right"));
+						GUI::Controls::Hotkey(XorStr("Right key##key"), &g_Vars.antiaim.manual_right_bind, false);
 
-
-						std::vector<MultiItem_t> freestand_modes = {
-							{ XorStr("Standing"), &g_Vars.antiaim.freestand_standing },
-							{ XorStr("Running"), &g_Vars.antiaim.freestand_running },
-						};
-
-						//GUI::Controls::MultiDropdown(XorStr("Freestanding"), freestand_modes);
-						//GUI::Controls::Checkbox(XorStr("Preserve stand yaw"), &g_Vars.antiaim.preserve);
-
-						if (GUI::Controls::Checkbox(XorStr("Manual"), &g_Vars.antiaim.manual) || GUI::ctx->setup) {
-							GUI::Controls::ColorPicker(XorStr("Manual color"), &g_Vars.antiaim.manual_color);
-							GUI::Controls::Label(XorStr("Left"));
-							GUI::Controls::Hotkey(XorStr("Left key##key"), &g_Vars.antiaim.manual_left_bind, false);
-
-							GUI::Controls::Label(XorStr("Right"));
-							GUI::Controls::Hotkey(XorStr("Right key##key"), &g_Vars.antiaim.manual_right_bind, false);
-
-							GUI::Controls::Label(XorStr("Back"));
-							GUI::Controls::Hotkey(XorStr("Back key##key"), &g_Vars.antiaim.manual_back_bind, false);
-						}
-
-						// distortion.
-						if (GUI::Controls::Checkbox(XorStr("Distortion###sse"), &g_Vars.antiaim.distort)) {
-							// manual aa is on, show this.
-							if (g_Vars.antiaim.manual)
-								GUI::Controls::Checkbox(XorStr("Manual override"), &g_Vars.antiaim.distort_manual_aa);
-							if (GUI::Controls::Checkbox(XorStr("Twist"), &g_Vars.antiaim.distort_twist))
-								GUI::Controls::Slider(XorStr("Speed"), &g_Vars.antiaim.distort_speed, 1.f, 10.f, XorStr("%.1fs"));
-							GUI::Controls::Slider(XorStr("Max time"), &g_Vars.antiaim.distort_max_time, 0.f, 10.f);
-							GUI::Controls::Slider(XorStr("Range"), &g_Vars.antiaim.distort_range, -360.f, 360.f, XorStr("%.1f°"));
-
-							std::vector<MultiItem_t> distort_disablers = {
-								{ XorStr("Fakewalking"), &g_Vars.antiaim.distort_disable_fakewalk },
-								{ XorStr("Running"), &g_Vars.antiaim.distort_disable_run },
-								{ XorStr("Airborne"), &g_Vars.antiaim.distort_disable_air },
-							};
-
-							GUI::Controls::MultiDropdown(XorStr("Distortion disablers"), distort_disablers);
-						}
+						GUI::Controls::Label(XorStr("Back"));
+						GUI::Controls::Hotkey(XorStr("Back key##key"), &g_Vars.antiaim.manual_back_bind, false);
 					}
-					//GUI::Controls::Label( XorStr( "Invert LBY" ) );
-					//GUI::Controls::Hotkey( XorStr( "LBY Flip" ), &g_Vars.antiaim.desync_flip_bind );
-					//GUI::Controls::Checkbox( XorStr( "Imposter breaker" ), &g_Vars.antiaim.imposta );
 
+					//GUI::Controls::Checkbox( XorStr( "Lock direction" ), &g_Vars.antiaim.freestand_lock );
+
+					GUI::Controls::Checkbox(XorStr("Freestand yaw"), &g_Vars.antiaim.freestand);
+
+					GUI::Group::EndGroup();
 				}
-				GUI::Group::EndGroup();
 
-				GUI::Group::BeginGroup(XorStr("Fake lag"), Vector2D(50, 50)); {
+				GUI::Group::BeginGroup(XorStr("Distortion"), Vector2D(50, 50));
+				{
+					//config_option(int, distort_force_turn_spd, 1);
+					//config_option(int, distort_spd, 7);
+					//config_option(int, distort_rmg, 144);
+					//config_option(bool, distort_override, false);
+					//config_option(bool, distort_force_turn, false);
+
+					GUI::Controls::Checkbox(XorStr("Distortion###sse"), &g_Vars.antiaim.distort_tggl);
+					GUI::Controls::Checkbox(XorStr("Manual override"), &g_Vars.antiaim.distort_override);
+					if (GUI::Controls::Checkbox(XorStr("Force Turn"), &g_Vars.antiaim.distort_force_turn) || GUI::ctx->setup)
+						GUI::Controls::Slider(XorStr("Multiplier"), &g_Vars.antiaim.distort_force_turn_spd, 0, 12);
+					GUI::Controls::Slider(XorStr("Speed"), &g_Vars.antiaim.distort_spd, 0.f, 10);
+					GUI::Controls::Slider(XorStr("Range"), &g_Vars.antiaim.distort_rmg, 0, 360);
+
+					std::vector<MultiItem_t> distort_disablers = {
+						{ XorStr("Fakewalking"), &g_Vars.antiaim.distort_disable_fakewalk },
+						{ XorStr("Running"), &g_Vars.antiaim.distort_disable_run },
+						{ XorStr("Airborne"), &g_Vars.antiaim.distort_disable_air },
+					};
+
+					GUI::Controls::MultiDropdown(XorStr("Distortion disablers"), distort_disablers);
+
+					GUI::Group::EndGroup();
+				}
+
+				GUI::Group::BeginGroup(XorStr("Fake anti-aim"), Vector2D(50, 50));
+				{
+					GUI::Controls::Dropdown(XorStr("Fake Yaw"), { XorStr("Off"), XorStr("Opposite"), XorStr("Jitter"), XorStr("Random Jitter"), XorStr("Spin"), XorStr("Lag Spin") }, &settings->fakeyaw);
+
+					if (settings->fakeyaw == 2)
+						GUI::Controls::Slider(XorStr("Jitter Range"), &settings->jitterrange, -180, 180);
+
+					if (settings->fakeyaw == 4)
+					{
+						GUI::Controls::Slider(XorStr("Spin Range"), &settings->rotationrange, -180, 180);
+						GUI::Controls::Slider(XorStr("Spin Range"), &settings->rotationspeed, 0, 20);
+					}
+
+					if (settings->fakeyaw == 5)
+					{
+						GUI::Controls::Slider(XorStr("Lag Spin Range"), &settings->lagrotationrange, -180, 180);
+						GUI::Controls::Slider(XorStr("Lag Spin Speed"), &settings->lagrotationspeed, 0, 20);
+					}
+
+					GUI::Controls::Dropdown(XorStr("LBY Breaker"), { XorStr("Off"), XorStr("Dynamic"), XorStr("Sway"), XorStr("Static") }, &settings->yaw);
+
+					if (settings->yaw > 0)
+						GUI::Controls::Dropdown(XorStr("LBY Twist"), { XorStr("Off"), XorStr("Skylet"), XorStr("Proper") }, &settings->twist);
+
+					// static lets choose our own vaule.
+					if (settings->yaw == 3) {
+						GUI::Controls::Slider(XorStr("Break angle"), &g_Vars.antiaim.break_lby, -145, 145);
+					}
+
+					GUI::Controls::Label(XorStr("Invert LBY"));
+					GUI::Controls::Hotkey(XorStr("LBY Flip"), &g_Vars.antiaim.desync_flip_bind);
+					GUI::Controls::Checkbox(XorStr("Funny Mode"), &g_Vars.antiaim.funnymode);
+					GUI::Controls::Checkbox(XorStr("Preserve stand yaw"), &g_Vars.antiaim.preserve);
+
+					GUI::Controls::Checkbox(XorStr("Slow motion"), &g_Vars.misc.slow_walk);
+					GUI::Controls::Hotkey(XorStr("Slow motion key#Key"), &g_Vars.misc.slow_walk_bind);
+					GUI::Controls::Slider(XorStr("Slow motion speed"), &g_Vars.misc.slow_walk_speed, 4, 16);
+
+					GUI::Group::EndGroup();
+				}
+
+				GUI::Group::BeginGroup(XorStr("Fake-lag"), Vector2D(50, 50));
+				{
 					GUI::Controls::Checkbox(XorStr("Enabled##fakeKURWAlag"), &g_Vars.fakelag.enabled);
 
 					std::vector<MultiItem_t> fakelag_cond = {
+						{ XorStr("Standing"), &g_Vars.fakelag.when_standing },
 						{ XorStr("Moving"), &g_Vars.fakelag.when_moving },
 						{ XorStr("In air"), &g_Vars.fakelag.when_air },
+						{ XorStr("Lby Update"), &g_Vars.fakelag.when_lby_update },
 					};
 					GUI::Controls::MultiDropdown(XorStr("Conditions"), fakelag_cond);
 					GUI::Controls::Dropdown(XorStr("Type"), { XorStr("Maximum"), XorStr("Dynamic"), XorStr("Fluctuate") }, &g_Vars.fakelag.choke_type);
@@ -277,21 +307,8 @@ namespace Menu {
 
 					GUI::Controls::Slider(XorStr("Variance"), &g_Vars.fakelag.variance, 0.0f, 100.0f, XorStr("%.0f %%"));
 
+					GUI::Group::EndGroup();
 				}
-				GUI::Group::EndGroup();
-
-				GUI::Group::BeginGroup(XorStr("Other"), Vector2D(50, 50)); {
-					if (GUI::Controls::Checkbox(XorStr("Fake-walk"), &g_Vars.misc.slow_walk) || GUI::ctx->setup) {
-						GUI::Controls::Hotkey(XorStr("Fake-walk key#Key"), &g_Vars.misc.slow_walk_bind);
-						GUI::Controls::Slider(XorStr("Fake-walk speed"), &g_Vars.misc.slow_walk_speed, 4, 16);
-					}
-					GUI::Controls::Checkbox(XorStr("Move exploit"), &g_Vars.misc.move_exploit, true);
-					GUI::Controls::Hotkey(XorStr("Move exploit key"), &g_Vars.misc.move_exploit_key);
-					GUI::Controls::Checkbox(XorStr("Fix leg movement"), &g_Vars.misc.slide_walk, true);
-					GUI::Controls::Checkbox(XorStr("Infinite duck"), &g_Vars.misc.fastduck, true);
-					GUI::Controls::Checkbox(XorStr("Funny Mode"), &g_Vars.antiaim.funny_mode, true);
-				}
-				GUI::Group::EndGroup();
 			}
 
 			if (GUI::Form::BeginTab(2, XorStr("C")) || GUI::ctx->setup) {

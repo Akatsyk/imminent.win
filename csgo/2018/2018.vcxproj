@@ -61,7 +61,7 @@
     <WholeProgramOptimization>true</WholeProgramOptimization>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug loader|Win32'" Label="Configuration">
-    <PlatformToolset>v142</PlatformToolset>
+    <PlatformToolset>v141</PlatformToolset>
     <ConfigurationType>DynamicLibrary</ConfigurationType>
     <CharacterSet>MultiByte</CharacterSet>
     <WholeProgramOptimization>true</WholeProgramOptimization>
@@ -111,7 +111,7 @@
     <TargetExt>.dll</TargetExt>
     <IntDir>$(SolutionDir)$(Configuration)\Intermediate\</IntDir>
     <GenerateManifest>false</GenerateManifest>
-    <TargetName>$(ProjectName)_debug</TargetName>
+    <TargetName>0</TargetName>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Stable build|x64'">
     <ExecutablePath>$(VC_ExecutablePath_x86);$(WindowsSDK_ExecutablePath);$(VS_ExecutablePath);$(MSBuild_ExecutablePath);$(SystemRoot)\SysWow64;$(FxCopDir);$(PATH);</ExecutablePath>

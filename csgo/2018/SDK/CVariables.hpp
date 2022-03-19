@@ -785,10 +785,18 @@ public:
 	group_end();
 #pragma endregion
 
+
 #pragma region Antiaim group
 	group_begin(ANTIAIM_STATE);
 	config_option(int, pitch, 0);
 	config_option(int, yaw, 0);
+	config_option(int, twist, 0);
+	config_option(int, fakeyaw, 0);
+	config_option(float, rotationspeed, 0.f);
+	config_option(float, rotationrange, 0.f);
+	config_option(float, lagrotationspeed, 0.f);
+	config_option(float, lagrotationrange, 0.f);
+	config_option(int, jitterrange, 0);
 	config_option(int, base_yaw, 0);
 	config_option(bool, desync_enabled, false);
 	config_option(float, desync_amount, 60.f);
@@ -837,13 +845,24 @@ public:
 	config_keybind(mouse_override);
 	config_keybind(autodirection_override);
 
-	config_option(float, distort_max_time, 3.5f);
-	config_option(float, distort_speed, 5.0f);
-	config_option(float, distort_range, 180.0f);
-	config_option(bool, distort_manual_aa, false);
-	config_option(bool, distort_twist, false);
-	config_option(bool, distort_randomize, false);
-	config_option(bool, distort_lby_update, false);
+	config_option(int, fake_distort_max_time, 1);
+	config_option(int, fake_distort_speed, 7);
+	config_option(int, fake_distort_range, 144);
+	config_option(bool, fake_distort_manual_aa, false);
+	config_option(bool, fake_distort_twist, false);
+	config_option(bool, fake_distort_randomize, false);
+	config_option(bool, fake_distort_lby_update, false);
+
+	config_option(bool, distort_tggl, false);
+	config_option(bool, distort_override, false);
+	config_option(bool, distort_force_turn, false);
+	config_option(int, distort_force_turn_spd, 1);
+	config_option(int, distort_spd, 7);
+	config_option(int, distort_rmg, 144);
+
+	config_option(bool, distort_disable_fakewalk, false);
+	config_option(bool, distort_disable_run, false);
+	config_option(bool, distort_disable_air, false);
 
 	config_option(bool, freestand, false);
 	config_option(bool, freestand_invert, false);
@@ -852,20 +871,12 @@ public:
 	config_option(bool, freestand_disable_run, false);
 	config_option(bool, freestand_disable_air, false);
 
-	config_option(bool, distort, false);
-	config_option(bool, distort_disable_fakewalk, false);
-	config_option(bool, distort_disable_run, false);
-	config_option(bool, distort_disable_air, false);
-
 	config_option(int, break_lby, 0);
-	config_option(bool, imposta, false);
+	config_option(bool, funnymode, false);
 	config_option(bool, preserve, false);
-	config_option(bool, funny_mode, false);
 
 	config_option(bool, hide_real_on_shot, false);
 	config_keybind(desync_jitter_key);
-	config_option(bool, freestand_standing, false);
-	config_option(bool, freestand_running, false);
 
 	group_end();
 #pragma endregion
@@ -879,6 +890,7 @@ public:
 	config_option(float, variance, 0.f);
 	config_option(int, iLagLimit, 14);
 	config_option(bool, when_standing, false);
+	config_option(bool, when_lby_update, false);
 	config_option(bool, when_moving, false);
 	config_option(bool, when_air, false);
 	//config_option( bool, when_exploits, false );
