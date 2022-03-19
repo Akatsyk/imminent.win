@@ -5,6 +5,8 @@
 #include "Resolver.hpp"
 #include "../../Utils/tinyformat.h"
 
+bool bPredictionError = false, bImpacted = false, bCanMiss = false;
+
 namespace Engine
 {
 	struct C_TraceData {
@@ -74,8 +76,8 @@ namespace Engine
 		auto it = this->m_Shapshots.begin();
 		while (it != this->m_Shapshots.end()) {
 			if (it->correctSequence && Interfaces::m_pClientState->m_nLastCommandAck() >= it->outSequence + latency) {
-				ILoggerEvent::Get()->PushEvent(XorStr("Missed shot due to prediction error"), FloatColor(0.5f, 0.5f, 0.5f), true);
-
+				bPredictionError = true;
+				//ILoggerEvent::Get()->PushEvent(XorStr("PREDICTION ERROR DETECTED"), FloatColor(0.5f, 0.5f, 0.5f), false);
 				it = this->m_Shapshots.erase(it);
 			}
 			else {
@@ -240,26 +242,36 @@ namespace Engine
 						}
 					};
 
-					if (td->is_resolver_issue) {
-						if (it->snapshot->ResolverType == EResolverModes::RESOLVE_PRED)
-							lag_data->m_iMissedShotsLBY++;
-						else
-							lag_data->m_iMissedShots++;
+					if (g_Vars.esp.event_resolver) {
 
-						if (g_Vars.esp.event_resolver) {
-							AddMissLog(tfm::format(XorStr("resolver:%s"), g_ResolverData[it->snapshot->playerIdx].m_sResolverMode));
+						if (!bCanMiss)
+							return;
+
+						if (td->is_resolver_issue) {
+
+							if (it->snapshot->ResolverType == EResolverModes::RESOLVE_PRED)
+								lag_data->m_iMissedShotsLBY++;
+							else
+								lag_data->m_iMissedShots++;
+
+							AddMissLog(tfm::format(XorStr("resolver: %s"), g_ResolverData[it->snapshot->playerIdx].m_sResolverMode)); // config issue
 						}
-					}
-					else if (aimpoint_distance > impact_distance) { // occulusion issue
-						if (g_Vars.esp.event_resolver) {
+						else if (aimpoint_distance > impact_distance) { // config issue
 							AddMissLog(XorStr("occlusion"));
 						}
-					}
-					else { // spread issue
-						if (g_Vars.esp.event_resolver) {
+						else if (!td->is_resolver_issue) { // config issue
 							AddMissLog(XorStr("spread"));
 						}
+						else if (bPredictionError) { // config issue
+							AddMissLog(XorStr("prediction error"));
+						}
+						else if (bImpacted) { // config issue
+							AddMissLog(XorStr("client side"));
+						}
+
+						bCanMiss = false;
 					}
+
 				}
 				else {
 					bool shoud_break = false;
@@ -357,6 +369,8 @@ namespace Engine
 			if (this->m_Weaponfire.empty() || Interfaces::m_pEngine->GetPlayerForUserID(gameEvent->GetInt(XorStr("userid"))) != local->EntIndex())
 				return;
 
+			bImpacted = true;
+
 			this->m_Weaponfire.back().impacts.emplace_back(gameEvent->GetFloat(XorStr("x")), gameEvent->GetFloat(XorStr("y")), gameEvent->GetFloat(XorStr("z")));
 			break;
 		}
@@ -364,6 +378,8 @@ namespace Engine
 		{
 			if (Interfaces::m_pEngine->GetPlayerForUserID(gameEvent->GetInt(XorStr("userid"))) != local->EntIndex())
 				return;
+
+			bCanMiss = true;
 
 			int nElement = this->m_Weaponfire.size() / weapon_data->m_iBullets;
 

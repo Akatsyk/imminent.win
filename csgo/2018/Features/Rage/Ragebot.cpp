@@ -1682,7 +1682,7 @@ namespace Interfaces
 								msg << XorStr("player: ") << FixedStrLength(info.szName).data() << XorStr(" | ");
 
 								ILoggerEvent::Get()->PushEvent(msg.str(), FloatColor(0.8f, 0.8f, 0.8f), true, XorStr("fired shot "));
-								ILoggerEvent::Get()->PushEvent(std::to_string(m_lag_data->m_iMissedShots), FloatColor(0.8f, 0.8f, 0.0f), true, XorStr(""));
+								//ILoggerEvent::Get()->PushEvent(std::to_string(m_lag_data->m_iMissedShots), FloatColor(0.8f, 0.8f, 0.0f), true, XorStr(""));
 							}
 						}
 

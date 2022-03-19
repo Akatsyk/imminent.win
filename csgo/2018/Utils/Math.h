@@ -180,4 +180,33 @@ namespace Math
 
 		return ret;
 	}
+
+	inline void clampfloat(float& val, float minval, float maxval)
+	{
+		// Branchless SSE clamp.
+		// return minss( maxss(val,minval), maxval );
+
+		_mm_store_ss(&val, _mm_min_ss(_mm_max_ss(_mm_set_ss(val), _mm_set_ss(minval)), _mm_set_ss(maxval)));
+	}
+
+	inline void NormalizeFloat(float& f)
+	{
+		f -= floorf(f / 360.0f + 0.5f) * 360.0f;
+	}
+
+	inline float ClampXr(float x)
+	{
+		NormalizeFloat(x);
+
+		clampfloat(x, -89.0f, 89.0f);
+
+		return x;
+	}
+
+	inline float ClampYr(float y)
+	{
+		NormalizeFloat(y);
+
+		return y;
+	}
 }

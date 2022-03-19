@@ -590,7 +590,7 @@ namespace Engine
 
 			// attempt to resolve the player	
 			if (!player->IsTeammate(C_CSPlayer::GetLocalPlayer()) && !IsPlayerBot()) {
-				g_Resolver.ResolveYaw(player, current.Xor(), previous.Xor());
+				g_Resolver.ResolveYaw(player, current.Xor());
 
 				// predict lby updates
 				g_Resolver.PredictBodyUpdates(player, current.Xor(), previous.Xor());
