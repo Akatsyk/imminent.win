@@ -523,7 +523,7 @@ namespace Interfaces
 			if (is_local_player) {
 				//set local player ghost chams
 				static auto g_GameRules = *(uintptr_t**)(Engine::Displacement.Data.m_GameRules);
-				bool invalid = g_GameRules && *(bool*)(*(uintptr_t*)g_GameRules + 0x20) || (entity->m_fFlags() & (1 << 6));
+				bool invalid = g_GameRules && *(bool*)(*(uintptr_t*)g_GameRules + 0x20) || (entity->m_fFlags() & FL_FROZEN);
 
 				//set local player chams
 				if (g_Vars.esp.chams_local) {

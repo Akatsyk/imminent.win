@@ -291,7 +291,7 @@ namespace Hooked
 		}
 
 		static auto g_GameRules = *(uintptr_t**)(Engine::Displacement.Data.m_GameRules);
-		bool invalid = g_GameRules && *(bool*)(*(uintptr_t*)g_GameRules + 0x20) || (pLocal->m_fFlags() & (1 << 6));
+		bool invalid = g_GameRules && *(bool*)(*(uintptr_t*)g_GameRules + 0x20) || (pLocal->m_fFlags() & FL_FROZEN);
 
 		Encrypted_t<CVariables::GLOBAL> globals(&g_Vars.globals);
 

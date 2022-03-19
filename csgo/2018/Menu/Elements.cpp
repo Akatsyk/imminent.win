@@ -17,7 +17,7 @@ namespace Menu {
 			if (GUI::Form::BeginTab(0, XorStr("A")) || GUI::ctx->setup) {
 
 				CVariables::RAGE* rbot = nullptr;
-				GUI::Group::BeginGroup(XorStr("Aimbot"), Vector2D(50, 100));
+				GUI::Group::BeginGroup(XorStr("General"), Vector2D(50, 80));
 				GUI::Controls::Checkbox(XorStr("Enabled##rage"), &g_Vars.rage.enabled);
 				GUI::Controls::Hotkey(XorStr("Enabled key##rage"), &g_Vars.rage.key);
 
@@ -151,10 +151,31 @@ namespace Menu {
 						}
 					}
 				}
-
 				GUI::Group::EndGroup();
 
-				GUI::Group::BeginGroup(XorStr("Other"), Vector2D(50, 100)); {
+				GUI::Group::BeginGroup(XorStr("Fake lag"), Vector2D(50, 20));
+				{
+					GUI::Controls::Checkbox(XorStr("Enabled##fakeKURWAlag"), &g_Vars.fakelag.enabled);
+
+					std::vector<MultiItem_t> fakelag_cond = {
+						{ XorStr("Standing"), &g_Vars.fakelag.when_standing },
+						{ XorStr("Moving"), &g_Vars.fakelag.when_moving },
+						{ XorStr("In air"), &g_Vars.fakelag.when_air },
+						{ XorStr("Lby Update"), &g_Vars.fakelag.when_lby_update },
+					};
+					GUI::Controls::MultiDropdown(XorStr("Triggers"), fakelag_cond);
+					GUI::Controls::Dropdown(XorStr(""), { XorStr("Maximum"), XorStr("Dynamic"), XorStr("Fluctuate") }, &g_Vars.fakelag.choke_type);
+					GUI::Controls::Slider(XorStr("Variance"), &g_Vars.fakelag.variance, 0.0f, 100.0f, XorStr("%.0f %%"));
+					GUI::Controls::Slider(XorStr("Limit"), &g_Vars.fakelag.choke, 0, 16);
+
+					g_Vars.fakelag.trigger_duck = g_Vars.fakelag.trigger_weapon_activity = g_Vars.fakelag.trigger_shooting = false;
+					g_Vars.fakelag.trigger_land = true;
+					g_Vars.fakelag.alternative_choke = 0;
+
+					GUI::Group::EndGroup();
+				}
+
+				GUI::Group::BeginGroup(XorStr("Other"), Vector2D(50, 40)); {
 
 					if (!g_Vars.misc.anti_untrusted || GUI::ctx->setup)
 						GUI::Controls::Checkbox(XorStr("Compensate spread") + std::string(XorStr("#") + std::to_string(rage_current_group)), &rbot->compensate_spread);
@@ -191,42 +212,64 @@ namespace Menu {
 					GUI::Controls::Hotkey(XorStr("Override resolver key##key") + std::string(XorStr("#") + std::to_string(rage_current_group)), &g_Vars.rage.override_reoslver);
 
 				} GUI::Group::EndGroup();
-			}
 
-			if (GUI::Form::BeginTab(1, XorStr("B")) || GUI::ctx->setup) {
 				CVariables::ANTIAIM_STATE* settings = &g_Vars.antiaim_stand;
 
 				GUI::Group::BeginGroup(XorStr("Real anti-aim"), Vector2D(50, 50));
 				{
 					GUI::Controls::Checkbox(XorStr("Enabled##aa"), &g_Vars.antiaim.enabled);
-					GUI::Controls::Dropdown(XorStr("Pitch"), { XorStr("Off"), XorStr("Down"), XorStr("Up"), XorStr("Zero") }, &settings->pitch);
+					GUI::Controls::Dropdown(XorStr("Pitch"), { XorStr("Off"), XorStr("Down"), XorStr("Up"), XorStr("Zero"), XorStr("Minimal") }, &settings->pitch);
+					GUI::Controls::Dropdown(XorStr("Yaw"), { XorStr("Off"), XorStr("180"), XorStr("180 Jitter"), XorStr("Jitter"), XorStr("Spin"), XorStr("Random"), XorStr("Static"), XorStr("180z") }, &settings->base_yaw);
+					if (settings->base_yaw > 0)
+					{
+						if (settings->base_yaw == 3)
+							GUI::Controls::Slider(XorStr(""), &settings->realjitterrange, -180, 180);
 
-					if (GUI::Controls::Checkbox(XorStr("Manual AA"), &g_Vars.antiaim.manual) || GUI::ctx->setup) {
-						GUI::Controls::ColorPicker(XorStr("Manual color"), &g_Vars.antiaim.manual_color);
-						GUI::Controls::Label(XorStr("Left"));
-						GUI::Controls::Hotkey(XorStr("Left key##key"), &g_Vars.antiaim.manual_left_bind, false);
+						if (settings->base_yaw == 4)
+						{
+							GUI::Controls::Slider(XorStr(""), &settings->realrotationrange, -180, 180);
+							GUI::Controls::Slider(XorStr(""), &settings->realrotationspeed, 0, 20);
+						}
 
-						GUI::Controls::Label(XorStr("Right"));
-						GUI::Controls::Hotkey(XorStr("Right key##key"), &g_Vars.antiaim.manual_right_bind, false);
+						if (settings->base_yaw == 6)
+							GUI::Controls::Slider(XorStr(""), &settings->staticangle, -180, 180);
+					}
+					
+					GUI::Controls::Dropdown(XorStr("Yaw while Moving##aa"), { XorStr("Off"), XorStr("180 Jitter") }, &settings->moving_yaw);
 
-						GUI::Controls::Label(XorStr("Back"));
-						GUI::Controls::Hotkey(XorStr("Back key##key"), &g_Vars.antiaim.manual_back_bind, false);
+					GUI::Controls::Dropdown(XorStr("Fake Yaw"), { XorStr("Off"), XorStr("Default"), XorStr("Relative"), XorStr("Jitter"), XorStr("Rotate"), XorStr("Random") }, & settings->fakeyaw);
+					if (settings->fakeyaw > 0)
+					{
+						if (settings->fakeyaw == 2)
+							GUI::Controls::Slider(XorStr(""), &settings->relativeamount, -180, 180);
+
+						if (settings->fakeyaw == 3)
+							GUI::Controls::Slider(XorStr(""), &settings->jitterrange, -180, 180);
+
+						if (settings->fakeyaw == 4)
+						{
+							GUI::Controls::Slider(XorStr(""), &settings->rotationrange, -180, 180);
+							GUI::Controls::Slider(XorStr(""), &settings->rotationspeed, 0, 20);
+						}
 					}
 
-					//GUI::Controls::Checkbox( XorStr( "Lock direction" ), &g_Vars.antiaim.freestand_lock );
+					GUI::Controls::Checkbox(XorStr("Stahlhelm"), &g_Vars.antiaim.stahlhelm);
 
-					GUI::Controls::Checkbox(XorStr("Freestand yaw"), &g_Vars.antiaim.freestand);
+					std::vector<MultiItem_t> freestand_options = {
+						{ XorStr("Standing"), &g_Vars.antiaim.freestand_stand },
+						{ XorStr("Running"), &g_Vars.antiaim.freestand_move },
+					};
 
-					GUI::Group::EndGroup();
-				}
+					GUI::Controls::MultiDropdown(XorStr("Freestanding"), freestand_options);
 
-				GUI::Group::BeginGroup(XorStr("Distortion"), Vector2D(50, 50));
-				{
-					//config_option(int, distort_force_turn_spd, 1);
-					//config_option(int, distort_spd, 7);
-					//config_option(int, distort_rmg, 144);
-					//config_option(bool, distort_override, false);
-					//config_option(bool, distort_force_turn, false);
+					GUI::Controls::Dropdown(XorStr("LBY Breaker"), { XorStr("Off"), XorStr("Dynamic"), XorStr("Sway"), XorStr("Static") }, &settings->yaw);
+					if (settings->yaw > 0)
+					{
+						GUI::Controls::Dropdown(XorStr("Twist"), { XorStr("Off"), XorStr("Skylet"), XorStr("Proper") }, &settings->twist);
+
+						if (settings->yaw == 3)
+							GUI::Controls::Slider(XorStr(""), &g_Vars.antiaim.break_lby, -145, 145);
+					}
 
 					GUI::Controls::Checkbox(XorStr("Distortion###sse"), &g_Vars.antiaim.distort_tggl);
 					GUI::Controls::Checkbox(XorStr("Manual override"), &g_Vars.antiaim.distort_override);
@@ -243,72 +286,30 @@ namespace Menu {
 
 					GUI::Controls::MultiDropdown(XorStr("Distortion disablers"), distort_disablers);
 
-					GUI::Group::EndGroup();
-				}
-
-				GUI::Group::BeginGroup(XorStr("Fake anti-aim"), Vector2D(50, 50));
-				{
-					GUI::Controls::Dropdown(XorStr("Fake Yaw"), { XorStr("Off"), XorStr("Opposite"), XorStr("Jitter"), XorStr("Random Jitter"), XorStr("Spin"), XorStr("Lag Spin") }, &settings->fakeyaw);
-
-					if (settings->fakeyaw == 2)
-						GUI::Controls::Slider(XorStr("Jitter Range"), &settings->jitterrange, -180, 180);
-
-					if (settings->fakeyaw == 4)
-					{
-						GUI::Controls::Slider(XorStr("Spin Range"), &settings->rotationrange, -180, 180);
-						GUI::Controls::Slider(XorStr("Spin Range"), &settings->rotationspeed, 0, 20);
-					}
-
-					if (settings->fakeyaw == 5)
-					{
-						GUI::Controls::Slider(XorStr("Lag Spin Range"), &settings->lagrotationrange, -180, 180);
-						GUI::Controls::Slider(XorStr("Lag Spin Speed"), &settings->lagrotationspeed, 0, 20);
-					}
-
-					GUI::Controls::Dropdown(XorStr("LBY Breaker"), { XorStr("Off"), XorStr("Dynamic"), XorStr("Sway"), XorStr("Static") }, &settings->yaw);
-
-					if (settings->yaw > 0)
-						GUI::Controls::Dropdown(XorStr("LBY Twist"), { XorStr("Off"), XorStr("Skylet"), XorStr("Proper") }, &settings->twist);
-
-					// static lets choose our own vaule.
-					if (settings->yaw == 3) {
-						GUI::Controls::Slider(XorStr("Break angle"), &g_Vars.antiaim.break_lby, -145, 145);
-					}
-
-					GUI::Controls::Label(XorStr("Invert LBY"));
-					GUI::Controls::Hotkey(XorStr("LBY Flip"), &g_Vars.antiaim.desync_flip_bind);
 					GUI::Controls::Checkbox(XorStr("Funny Mode"), &g_Vars.antiaim.funnymode);
-					GUI::Controls::Checkbox(XorStr("Preserve stand yaw"), &g_Vars.antiaim.preserve);
 
 					GUI::Controls::Checkbox(XorStr("Slow motion"), &g_Vars.misc.slow_walk);
 					GUI::Controls::Hotkey(XorStr("Slow motion key#Key"), &g_Vars.misc.slow_walk_bind);
 					GUI::Controls::Slider(XorStr("Slow motion speed"), &g_Vars.misc.slow_walk_speed, 4, 16);
 
-					GUI::Group::EndGroup();
-				}
+					if (GUI::Controls::Checkbox(XorStr("Manual AA"), &g_Vars.antiaim.manual) || GUI::ctx->setup) {
+						GUI::Controls::ColorPicker(XorStr("Manual color"), &g_Vars.antiaim.manual_color);
+						GUI::Controls::Label(XorStr("Left"));
+						GUI::Controls::Hotkey(XorStr("Left key##key"), &g_Vars.antiaim.manual_left_bind, false);
 
-				GUI::Group::BeginGroup(XorStr("Fake-lag"), Vector2D(50, 50));
-				{
-					GUI::Controls::Checkbox(XorStr("Enabled##fakeKURWAlag"), &g_Vars.fakelag.enabled);
+						GUI::Controls::Label(XorStr("Right"));
+						GUI::Controls::Hotkey(XorStr("Right key##key"), &g_Vars.antiaim.manual_right_bind, false);
 
-					std::vector<MultiItem_t> fakelag_cond = {
-						{ XorStr("Standing"), &g_Vars.fakelag.when_standing },
-						{ XorStr("Moving"), &g_Vars.fakelag.when_moving },
-						{ XorStr("In air"), &g_Vars.fakelag.when_air },
-						{ XorStr("Lby Update"), &g_Vars.fakelag.when_lby_update },
-					};
-					GUI::Controls::MultiDropdown(XorStr("Conditions"), fakelag_cond);
-					GUI::Controls::Dropdown(XorStr("Type"), { XorStr("Maximum"), XorStr("Dynamic"), XorStr("Fluctuate") }, &g_Vars.fakelag.choke_type);
-					GUI::Controls::Slider(XorStr("Limit"), &g_Vars.fakelag.choke, 0, 16);
-
-					g_Vars.fakelag.trigger_duck = g_Vars.fakelag.trigger_weapon_activity = g_Vars.fakelag.trigger_shooting = false;
-					g_Vars.fakelag.trigger_land = true;
-					g_Vars.fakelag.alternative_choke = 0;
-
-					GUI::Controls::Slider(XorStr("Variance"), &g_Vars.fakelag.variance, 0.0f, 100.0f, XorStr("%.0f %%"));
+						GUI::Controls::Label(XorStr("Back"));
+						GUI::Controls::Hotkey(XorStr("Back key##key"), &g_Vars.antiaim.manual_back_bind, false);
+					}
 
 					GUI::Group::EndGroup();
 				}
+			}
+
+			if (GUI::Form::BeginTab(1, XorStr("B")) || GUI::ctx->setup) {
+
 			}
 
 			if (GUI::Form::BeginTab(2, XorStr("C")) || GUI::ctx->setup) {

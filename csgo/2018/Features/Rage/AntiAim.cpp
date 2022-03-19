@@ -74,14 +74,14 @@ namespace Interfaces
 			return false;
 
 		if (!(g_Vars.antiaim.bomb_activity && g_Vars.globals.BobmActivityIndex == LocalPlayer->EntIndex()) || !g_Vars.antiaim.bomb_activity)
-			if ((cmd->buttons & IN_USE) && (!settings->desync_e_hold || LocalPlayer->m_bIsDefusing()))
+			if ((cmd->buttons & IN_USE) && LocalPlayer->m_bIsDefusing())
 				return false;
 
 		if (LocalPlayer->m_MoveType() == MOVETYPE_NOCLIP)
 			return false;
 
 		static auto g_GameRules = *(uintptr_t**)(Engine::Displacement.Data.m_GameRules);
-		if (g_GameRules && *(bool*)(*(uintptr_t*)g_GameRules + 0x20) || (LocalPlayer->m_fFlags() & (1 << 6)))
+		if (g_GameRules && *(bool*)(*(uintptr_t*)g_GameRules + 0x20) || (LocalPlayer->m_fFlags() & FL_FROZEN))
 			return false;
 
 		C_WeaponCSBaseGun* Weapon = (C_WeaponCSBaseGun*)LocalPlayer->m_hActiveWeapon().Get();
@@ -219,44 +219,70 @@ namespace Interfaces
 
 			Distort(cmd, false);
 		}
+
 		else {
+			std::uniform_int_distribution random(-90, 90);
+			std::uniform_int_distribution randomjew(-settings->jitterrange, settings->jitterrange);
+			std::uniform_int_distribution randomInsideRandom(-120, 120);
+			std::uniform_int_distribution randombitch(-randomInsideRandom(generator), randomInsideRandom(generator));
+
 			switch (settings->fakeyaw)
 			{
-				// opposite.
-			case 1: cmd->viewangles.y = Math::AngleNormalize(flYaw + 180); break;
-
-				// jitter.
-			case 2:
-			{
-				// make our fake 180 degrees away from our real, and let's add a jitter 
-				// ranging from -90 to 90 to make shit even fuckier 
-				std::uniform_int_distribution random(-settings->jitterrange, settings->jitterrange);
+			case 1: // default
 				cmd->viewangles.y = Math::AngleNormalize(flYaw + 180 + random(generator));
 				break;
-			}
-
-			// random jitter.
-			case 3:
-			{
-				// make our fake 180 degrees away from our real, and let's add a jitter 
-				// ranging from -90 to 90 to make shit even fuckier 
-				std::uniform_int_distribution random(-90, 90);
-				cmd->viewangles.y = Math::AngleNormalize(flYaw + 180 + random(generator));
+				
+			case 2: // relative
+				cmd->viewangles.y = Math::AngleNormalize(flYaw + 180 + settings->relativeamount);
 				break;
-			}
-
-			// spin.
-			case 4: cmd->viewangles.y = std::fmod(Interfaces::m_pGlobalVars->curtime * (settings->rotationspeed * 100.f), settings->rotationrange * 360.f); break;
-
-				// fuck spin.
-			case 5:
-			{
-				std::uniform_int_distribution random(-90, 90);
-				cmd->viewangles.y = std::fmod(Interfaces::m_pGlobalVars->curtime * (settings->lagrotationspeed * 100.f), settings->lagrotationrange * 360.f) + random(generator);
+			
+			case 3: // jitter
+				cmd->viewangles.y = Math::AngleNormalize(flYaw + 180 + randomjew(generator));
 				break;
-			}
+			
+			case 4: // rotate
+				cmd->viewangles.y = std::fmod(Interfaces::m_pGlobalVars->curtime * (settings->rotationspeed * 100.f), settings->rotationrange * 360.f); 
+				break;
+
+			case 5: // really random
+				cmd->viewangles.y = Math::AngleNormalize(flYaw + 180 + randombitch(generator));
+				break;
 			default: [[fallthrough]];
 			}
+
+			//switch (settings->fakeyaw)
+			//{
+			//	// opposite.
+			//case 1: cmd->viewangles.y = Math::AngleNormalize(flYaw + 180); break;
+
+			//	// jitter.
+			//case 2:
+			//{
+			//	std::uniform_int_distribution random(-settings->jitterrange, settings->jitterrange);
+			//	cmd->viewangles.y = Math::AngleNormalize(flYaw + 180 + random(generator));
+			//	break;
+			//}
+
+			//// random jitter.
+			//case 3:
+			//{
+			//	std::uniform_int_distribution random(-90, 90);
+			//	cmd->viewangles.y = Math::AngleNormalize(flYaw + 180 + random(generator));
+			//	break;
+			//}
+
+			//// spin.
+			//case 4: cmd->viewangles.y = std::fmod(Interfaces::m_pGlobalVars->curtime * (settings->rotationspeed * 100.f), settings->rotationrange * 360.f); break;
+
+			//	// fuck spin.
+			//case 5:
+			//{
+			//	std::uniform_int_distribution random(-90, 90);
+			//	cmd->viewangles.y = std::fmod(Interfaces::m_pGlobalVars->curtime * (settings->lagrotationspeed * 100.f), settings->lagrotationrange * 360.f) + random(generator);
+			//	break;
+			//}
+			//default: [[fallthrough]];
+			//}
 		}
 
 		static bool bNegative = false;
@@ -359,7 +385,7 @@ namespace Interfaces
 				float addAngle = GetFPS() >= (TIME_TO_TICKS(1.f) * 0.5f) ?
 					(2.9 * std::max(Interfaces::FakeLag::Get()->GetMaxFakelagChoke(), g_Vars.globals.m_iPreviouslyChokedTicks) + 100) : 145.f;
 
-				cmd->viewangles.y += g_Vars.antiaim.break_lby + addAngle;
+				cmd->viewangles.y -= g_Vars.antiaim.break_lby + addAngle;
 
 				if (g_Vars.antiaim.funnymode)
 					cmd->viewangles.z = 45.f;
@@ -389,6 +415,14 @@ namespace Interfaces
 	}
 
 	float C_AntiAimbot::GetAntiAimX(Encrypted_t<CVariables::ANTIAIM_STATE> settings) {
+		auto local = C_CSPlayer::GetLocalPlayer();
+		if (!local || local->IsDead())
+			return FLT_MAX;
+
+		auto animState = local->m_PlayerAnimState();
+		if (!animState)
+			return FLT_MAX;
+
 		switch (settings->pitch) {
 		case 1: // down
 			return 89.f;
@@ -396,10 +430,143 @@ namespace Interfaces
 			return -89.f;
 		case 3: // zero
 			return 0.f;
+		case 4:
+			return animState->m_flMinBodyPitch;
 		default:
 			return FLT_MAX;
 			break;
 		}
+	}
+
+	bool DoEdgeAntiAim(C_BasePlayer* player, QAngle& out) {
+		CGameTrace trace;
+
+		if (player->m_MoveType() == MOVETYPE_LADDER)
+			return false;
+
+		// skip this player in our traces.
+		static CTraceFilterSkipEntity filter(player);
+
+		// get player bounds.
+		Vector mins = player->OBBMins();
+		Vector maxs = player->OBBMaxs();
+
+		// make player bounds bigger.
+		mins.x -= 20.f;
+		mins.y -= 20.f;
+		maxs.x += 20.f;
+		maxs.y += 20.f;
+
+		// get player origin.
+		Vector start = player->GetAbsOrigin();
+
+		// offset the view.
+		start.z += 56.f;
+
+		Interfaces::m_pEngineTrace->TraceRay(Ray_t(start, start, mins, maxs), CONTENTS_SOLID, (ITraceFilter*)&filter, &trace);
+		if (!trace.startsolid)
+			return false;
+
+		float  smallest = 1.f;
+		Vector plane;
+
+		// trace around us in a circle, in 20 steps (anti-degree conversion).
+		// find the closest object.
+		for (float step{ }; step <= (M_PI * 2.f); step += (M_PI / 10.f)) {
+			// extend endpoint x units.
+			Vector end = start;
+
+			// set end point based on range and step.
+			end.x += std::cos(step) * 32.f;
+			end.y += std::sin(step) * 32.f;
+
+			Interfaces::m_pEngineTrace->TraceRay(Ray_t(start, end, { -1.f, -1.f, -8.f }, { 1.f, 1.f, 8.f }), CONTENTS_SOLID, (ITraceFilter*)&filter, &trace);
+
+			// we found an object closer, then the previouly found object.
+			if (trace.fraction < smallest) {
+				// save the normal of the object.
+				plane = trace.plane.normal;
+				smallest = trace.fraction;
+			}
+		}
+
+		// no valid object was found.
+		if (smallest == 1.f || plane.z >= 0.1f)
+			return false;
+
+		// invert the normal of this object
+		// this will give us the direction/angle to this object.
+		Vector inv = -plane;
+		Vector dir = inv;
+		dir.Normalize();
+
+		// extend point into object by 24 units.
+		Vector point = start;
+		point.x += (dir.x * 24.f);
+		point.y += (dir.y * 24.f);
+
+		// check if we can stick our head into the wall.
+		if (Interfaces::m_pEngineTrace->GetPointContents(point, CONTENTS_SOLID) & CONTENTS_SOLID) {
+			// trace from 72 units till 56 units to see if we are standing behind something.
+			Interfaces::m_pEngineTrace->TraceRay(Ray_t(point + Vector{ 0.f, 0.f, 16.f }, point), CONTENTS_SOLID, (ITraceFilter*)&filter, &trace);
+
+			// we didnt start in a solid, so we started in air.
+			// and we are not in the ground.
+			if (trace.fraction < 1.f && !trace.startsolid && trace.plane.normal.z > 0.7f) {
+				// mean we are standing behind a solid object.
+				// set our angle to the inversed normal of this object.
+				out.y = RAD2DEG(std::atan2(inv.y, inv.x));
+				return true;
+			}
+		}
+
+		// if we arrived here that mean we could not stick our head into the wall.
+		// we can still see if we can stick our head behind/asides the wall.
+
+		// adjust bounds for traces.
+		mins = { (dir.x * -3.f) - 1.f, (dir.y * -3.f) - 1.f, -1.f };
+		maxs = { (dir.x * 3.f) + 1.f, (dir.y * 3.f) + 1.f, 1.f };
+
+		// move this point 48 units to the left 
+		// relative to our wall/base point.
+		Vector left = start;
+		left.x = point.x - (inv.y * 48.f);
+		left.y = point.y - (inv.x * -48.f);
+
+		Interfaces::m_pEngineTrace->TraceRay(Ray_t(left, point, mins, maxs), CONTENTS_SOLID, (ITraceFilter*)&filter, &trace);
+		float l = trace.startsolid ? 0.f : trace.fraction;
+
+		// move this point 48 units to the right 
+		// relative to our wall/base point.
+		Vector right = start;
+		right.x = point.x + (inv.y * 48.f);
+		right.y = point.y + (inv.x * -48.f);
+
+		Interfaces::m_pEngineTrace->TraceRay(Ray_t(right, point, mins, maxs), CONTENTS_SOLID, (ITraceFilter*)&filter, &trace);
+		float r = trace.startsolid ? 0.f : trace.fraction;
+
+		// both are solid, no edge.
+		if (l == 0.f && r == 0.f)
+			return false;
+
+		// set out to inversed normal.
+		out.y = RAD2DEG(std::atan2(inv.y, inv.x));
+
+		// left started solid.
+		// set angle to the left.
+		if (l == 0.f) {
+			out.y += 90.f;
+			return true;
+		}
+
+		// right started solid.
+		// set angle to the right.
+		if (r == 0.f) {
+			out.y -= 90.f;
+			return true;
+		}
+
+		return false;
 	}
 
 	float C_AntiAimbot::GetAntiAimY(Encrypted_t<CVariables::ANTIAIM_STATE> settings, Encrypted_t<CUserCmd> cmd) {
@@ -407,65 +574,198 @@ namespace Interfaces
 		if (!local || local->IsDead())
 			return FLT_MAX;
 
-		float flViewAnlge = cmd->viewangles.y;
-		float flRetValue = flViewAnlge + 180.f;
+		float flViewAngle = cmd->viewangles.y;
+		auto GetTargetYaw = [local, flViewAngle]() -> float
+		{
+			float_t flBestDistance = FLT_MAX;
+
+			C_CSPlayer* pFinalPlayer = nullptr;
+			for (int32_t i = 1; i < 65; i++)
+			{
+				C_CSPlayer* pPlayer = C_CSPlayer::GetPlayerByIndex(i);
+				if (!pPlayer || !pPlayer->IsPlayer() || pPlayer->IsDead() || pPlayer->m_iTeamNum() == local->m_iTeamNum() || pPlayer->IsDormant())
+					continue;
+
+				if (pPlayer->m_fFlags() & FL_FROZEN)
+					continue;
+
+				float_t flDistanceToPlayer = local->m_vecOrigin().Distance(pPlayer->m_vecOrigin());
+				if (flDistanceToPlayer > flBestDistance)
+					continue;
+
+				if (flDistanceToPlayer > 1250.0f)
+					continue;
+
+				flBestDistance = flDistanceToPlayer;
+				pFinalPlayer = pPlayer;
+			}
+
+			if (!pFinalPlayer)
+				return flViewAngle + 180.0f;
+
+			return Math::CalcAngle(local->GetAbsOrigin() + local->m_vecViewOffset(), pFinalPlayer->GetAbsOrigin()).yaw + 180.0f;
+		};
+
+		float flRetValue = (settings->at_targets ? GetTargetYaw() : flViewAngle) + 180.f;
 
 		bool bUsingManualAA = g_Vars.globals.manual_aa != -1;
-
 		if (bUsingManualAA) {
 			switch (g_Vars.globals.manual_aa) {
 			case 0:
-				flRetValue = flViewAnlge + 90.f;
+				flRetValue = (settings->at_targets ? GetTargetYaw() : flViewAngle) + 90.f;
 				break;
 			case 1:
-				flRetValue = flViewAnlge + 180.f;
+				flRetValue = (settings->at_targets ? GetTargetYaw() : flViewAngle) + 180.f;
 				break;
 			case 2:
-				flRetValue = flViewAnlge - 90.f;
+				flRetValue = (settings->at_targets ? GetTargetYaw() : flViewAngle) - 90.f;
 				break;
 			}
 		}
 
-		// lets do our real yaw.'
-		switch (settings->base_yaw) {
-		case 1: // backwards.
-			flRetValue = flViewAnlge + 180.f;
-			break;
-		case 2: // freestand.
+		bool bStahlhelmEnabled = false, bFreestandingEnabled = false;
+
+		QAngle returnAngle;
+		if (g_Vars.antiaim.stahlhelm && DoEdgeAntiAim(local, returnAngle) && !bUsingManualAA)
 		{
-			const C_AntiAimbot::Directions Direction = HandleDirection(cmd);
-			switch (Direction) {
-			case Directions::YAW_BACK:
-				// backwards yaw.
-				flRetValue = flViewAnlge + 180.f;
-				break;
-			case Directions::YAW_LEFT:
-				// left yaw.
-				flRetValue = flViewAnlge + 90.f;
-				break;
-			case Directions::YAW_RIGHT:
-				// right yaw.
-				flRetValue = flViewAnlge - 90.f;
-				break;
-			case Directions::YAW_NONE:
-				// 180z, cuz wat else to do.
-				flRetValue = (flViewAnlge + 180.f / 2.f);
-				flRetValue += std::fmod(Interfaces::m_pGlobalVars->curtime * (3.5 * 20.f), 180.f);
-				break;
-			}
-		}
-		break;
-		case 3: // 180z
-			flRetValue = (flViewAnlge - 180.f / 2.f);
-			flRetValue += std::fmod(Interfaces::m_pGlobalVars->curtime * (3.5 * 20.f), 180.f);
-			break;
-		default:
-			break;
+			bStahlhelmEnabled = true;
+			flRetValue = returnAngle.y;
 		}
 
-		if (!bUsingManualAA && g_Vars.antiaim.preserve) {
-			if (local->m_vecVelocity().Length2D() > 3.25f && local->m_vecVelocity().Length2D() < 20.f && !g_Vars.globals.Fakewalking) {
-				flRetValue = flViewAnlge + 180.f;
+		// this is inside of an else because iron helmet takes priority over freestanding.
+		else
+		{
+			bStahlhelmEnabled = false;
+
+			if (local->m_vecVelocity().Length() > 3.f && g_Vars.antiaim.freestand_move && !bUsingManualAA)
+			{
+				const C_AntiAimbot::Directions Direction = HandleDirection(cmd);
+				switch (Direction) {
+				case Directions::YAW_BACK:
+					// backwards yaw.
+					bFreestandingEnabled = true;
+					flRetValue = (settings->at_targets ? GetTargetYaw() : flViewAngle) + 180.f;
+					break;
+				case Directions::YAW_LEFT:
+					// left yaw.
+					bFreestandingEnabled = true;
+					flRetValue = (settings->at_targets ? GetTargetYaw() : flViewAngle) + 90.f;
+					break;
+				case Directions::YAW_RIGHT:
+					// right yaw.
+					bFreestandingEnabled = true;
+					flRetValue = (settings->at_targets ? GetTargetYaw() : flViewAngle) - 90.f;
+					break;
+				case Directions::YAW_NONE:
+					// break because we already have an angle!.
+					bFreestandingEnabled = false;
+					break;
+				}
+			}
+
+			if (local->m_vecVelocity().Length() < 3.f && g_Vars.antiaim.freestand_stand && !bUsingManualAA)
+			{
+				const C_AntiAimbot::Directions Direction = HandleDirection(cmd);
+				switch (Direction) {
+				case Directions::YAW_BACK:
+					// backwards yaw.
+					bFreestandingEnabled = true;
+					flRetValue = (settings->at_targets ? GetTargetYaw() : flViewAngle) + 180.f;
+					break;
+				case Directions::YAW_LEFT:
+					// left yaw.
+					bFreestandingEnabled = true;
+					flRetValue = (settings->at_targets ? GetTargetYaw() : flViewAngle) + 90.f;
+					break;
+				case Directions::YAW_RIGHT:
+					// right yaw.
+					bFreestandingEnabled = true;
+					flRetValue = (settings->at_targets ? GetTargetYaw() : flViewAngle) - 90.f;
+					break;
+				case Directions::YAW_NONE:
+					// break because we already have an angle!.
+					bFreestandingEnabled = false;
+					break;
+				}
+			}
+		}
+
+		static int Ticks = 0;
+		if (settings->moving_yaw > 0 && !bStahlhelmEnabled && !bFreestandingEnabled && !bUsingManualAA)
+		{
+			if (local->m_vecVelocity().Length() > 3.f)
+			{
+				flRetValue = (settings->at_targets ? GetTargetYaw() : flViewAngle) + ((rand() % 15) - (15 * 0.5f));
+			}
+			else
+			{
+				std::uniform_int_distribution random(-settings->realjitterrange, settings->realjitterrange);
+				std::uniform_int_distribution randomspic(-settings->randomrange, settings->randomrange);
+
+				switch (settings->base_yaw)
+				{
+				case 1: // backwards.
+					flRetValue = (settings->at_targets ? GetTargetYaw() : flViewAngle) + 180.f;
+					break;
+				case 2: // 180 jitter
+					flRetValue = (settings->at_targets ? GetTargetYaw() : flViewAngle) + ((rand() % 15) - (15 * 0.5f));
+					break;
+				case 3: // jitter
+					flRetValue = Math::AngleNormalize((settings->at_targets ? GetTargetYaw() : flViewAngle) + random(generator));
+					break;
+				case 4: // spin
+					flRetValue = std::fmod(Interfaces::m_pGlobalVars->curtime * (settings->realrotationspeed * 100.f), settings->realrotationrange * 360.f); break;
+					break;
+				case 5: // random
+					flRetValue = Math::AngleNormalize((settings->at_targets ? GetTargetYaw() : flViewAngle) + randomspic(generator));
+					break;
+				case 6: // static
+					flRetValue = Math::AngleNormalize((settings->at_targets ? GetTargetYaw() : flViewAngle) + settings->staticangle);
+					break;
+				case 7: // 180z
+					flRetValue -= Ticks;
+					Ticks += 2;
+
+					if (Ticks > 240)
+						Ticks = 120;
+					break;
+				default: [[fallthrough]];
+				}
+			}
+		}
+		else
+		{
+			std::uniform_int_distribution randomnigger(-settings->realjitterrange, settings->realjitterrange);
+			std::uniform_int_distribution randomcockhead(-settings->randomrange, settings->randomrange);
+
+			switch (settings->base_yaw)
+			{
+			case 1: // backwards.
+				flRetValue = (settings->at_targets ? GetTargetYaw() : flViewAngle) + 180.f;
+				break;
+			case 2: // 180 jitter
+				flRetValue = (settings->at_targets ? GetTargetYaw() : flViewAngle) + ((rand() % 15) - (15 * 0.5f));
+				break;
+			case 3: // jitter
+				flRetValue = Math::AngleNormalize((settings->at_targets ? GetTargetYaw() : flViewAngle) + randomnigger(generator));
+				break;
+			case 4: // spin
+				flRetValue = std::fmod(Interfaces::m_pGlobalVars->curtime * (settings->realrotationspeed * 100.f), settings->realrotationrange * 360.f); break;
+				break;
+			case 5: // random
+				flRetValue = Math::AngleNormalize((settings->at_targets ? GetTargetYaw() : flViewAngle) + randomcockhead(generator));
+				break;
+			case 6: // static
+				flRetValue = Math::AngleNormalize((settings->at_targets ? GetTargetYaw() : flViewAngle) + settings->staticangle);
+				break;
+			case 7: // 180z
+				flRetValue -= Ticks;
+				Ticks += 2;
+
+				if (Ticks > 240)
+					Ticks = 120;
+				break;
+			default: [[fallthrough]];
 			}
 		}
 
@@ -474,7 +774,7 @@ namespace Interfaces
 			iUpdates = 1;
 
 		if (!g_Vars.globals.m_bGround) {
-			flRetValue = flViewAnlge + (iUpdates % 2 ? -155.f : 155.f);
+			flRetValue = (settings->at_targets ? GetTargetYaw() : flViewAngle) + (iUpdates % 2 ? -155.f : 155.f);
 			++iUpdates;
 		}
 
@@ -787,7 +1087,7 @@ namespace Interfaces
 			return false;
 
 		static auto g_GameRules = *( uintptr_t** )( Engine::Displacement.Data.m_GameRules );
-		if ( g_GameRules && *( bool* )( *( uintptr_t* )g_GameRules + 0x20 ) || ( LocalPlayer->m_fFlags( ) & ( 1 << 6 ) ) )
+		if ( g_GameRules && *( bool* )( *( uintptr_t* )g_GameRules + 0x20 ) || ( LocalPlayer->m_fFlags( ) & FL_FROZEN ) )
 			return false;
 
 		C_WeaponCSBaseGun* Weapon = ( C_WeaponCSBaseGun* )LocalPlayer->m_hActiveWeapon( ).Get( );
@@ -1041,21 +1341,21 @@ namespace Interfaces
 		if (g_Vars.antiaim.funny_mode && local->m_vecVelocity().Length() <= 0.0f)
 			cmd->viewangles.z = 30.f;
 
-		float flViewAnlge = cmd->viewangles.y;
-		float flRetValue = flViewAnlge + 180.f;
+		float flViewAngle = cmd->viewangles.y;
+		float flRetValue = flViewAngle + 180.f;
 
 		bool bUsingManualAA = g_Vars.globals.manual_aa != -1;
 
 		if( bUsingManualAA ) {
 			switch( g_Vars.globals.manual_aa ) {
 			case 0:
-				flRetValue += flViewAnlge + 90.f;
+				flRetValue += flViewAngle + 90.f;
 				break;
 			case 1:
-				flRetValue += flViewAnlge + 180.f;
+				flRetValue += flViewAngle + 180.f;
 				break;
 			case 2:
-				flRetValue += flViewAnlge - 90.f;
+				flRetValue += flViewAngle - 90.f;
 				break;
 			}
 		}
@@ -1069,22 +1369,22 @@ namespace Interfaces
 		//		switch (Direction) {
 		//		case Directions::YAW_BACK:
 		//			// backwards yaw.
-		//			flRetValue = flViewAnlge + 180.f;
+		//			flRetValue = flViewAngle + 180.f;
 		//			run_freestand = true;
 		//			break;
 		//		case Directions::YAW_LEFT:
 		//			// left yaw.
-		//			flRetValue = flViewAnlge + 90.f;
+		//			flRetValue = flViewAngle + 90.f;
 		//			run_freestand = true;
 		//			break;
 		//		case Directions::YAW_RIGHT:
 		//			// right yaw.
-		//			flRetValue = flViewAnlge - 90.f;
+		//			flRetValue = flViewAngle - 90.f;
 		//			run_freestand = true;
 		//			break;
 		//		case Directions::YAW_NONE:
 		//			// 180z, cuz wat else to do.
-		//			flRetValue = (flViewAnlge + 180.f / 2.f);
+		//			flRetValue = (flViewAngle + 180.f / 2.f);
 		//			flRetValue += std::fmod(Interfaces::m_pGlobalVars->curtime * (3.5 * 20.f), 180.f);
 		//			run_freestand = true;
 		//			break;
@@ -1097,22 +1397,22 @@ namespace Interfaces
 		//		switch (Direction) {
 		//		case Directions::YAW_BACK:
 		//			// backwards yaw.
-		//			flRetValue = flViewAnlge + 180.f;
+		//			flRetValue = flViewAngle + 180.f;
 		//			run_freestand = true;
 		//			break;
 		//		case Directions::YAW_LEFT:
 		//			// left yaw.
-		//			flRetValue = flViewAnlge + 90.f;
+		//			flRetValue = flViewAngle + 90.f;
 		//			run_freestand = true;
 		//			break;
 		//		case Directions::YAW_RIGHT:
 		//			// right yaw.
-		//			flRetValue = flViewAnlge - 90.f;
+		//			flRetValue = flViewAngle - 90.f;
 		//			run_freestand = true;
 		//			break;
 		//		case Directions::YAW_NONE:
 		//			// 180z, cuz wat else to do.
-		//			flRetValue = (flViewAnlge + 180.f / 2.f);
+		//			flRetValue = (flViewAngle + 180.f / 2.f);
 		//			flRetValue += std::fmod(Interfaces::m_pGlobalVars->curtime * (3.5 * 20.f), 180.f);
 		//			run_freestand = true;
 		//			break;
@@ -1127,32 +1427,32 @@ namespace Interfaces
 		// lets do our real yaw.'
 		switch( settings->base_yaw ) {
 		case 1: // backwards.
-			flRetValue = flViewAnlge + 180.f;
+			flRetValue = flViewAngle + 180.f;
 			break;
 		case 2: // 180z
-			flRetValue = ( flViewAnlge - 180.f / 2.f );
+			flRetValue = ( flViewAngle - 180.f / 2.f );
 			flRetValue += std::fmod(Interfaces::m_pGlobalVars->curtime * ( 3.5 * 20.f ), 180.f );
 			break;
 		case 3:
 			switch (Direction) {
 			case Directions::YAW_BACK:
 				// backwards yaw.
-				flRetValue = flViewAnlge + 180.f;
+				flRetValue = flViewAngle + 180.f;
 				//run_freestand = true;
 				break;
 			case Directions::YAW_LEFT:
 				// left yaw.
-				flRetValue = flViewAnlge + 90.f;
+				flRetValue = flViewAngle + 90.f;
 				//run_freestand = true;
 				break;
 			case Directions::YAW_RIGHT:
 				// right yaw.
-				flRetValue = flViewAnlge - 90.f;
+				flRetValue = flViewAngle - 90.f;
 				//run_freestand = true;
 				break;
 			case Directions::YAW_NONE:
 				// 180z, cuz wat else to do.
-				flRetValue = (flViewAnlge + 180.f / 2.f);
+				flRetValue = (flViewAngle + 180.f / 2.f);
 				flRetValue += std::fmod(Interfaces::m_pGlobalVars->curtime * (3.5 * 20.f), 180.f);
 				//run_freestand = true;
 				break;
@@ -1164,7 +1464,7 @@ namespace Interfaces
 
 		if( !bUsingManualAA && g_Vars.antiaim.preserve ) {
 			if( local->m_vecVelocity( ).Length2D( ) > 3.25f && local->m_vecVelocity( ).Length2D( ) < 20.f && !g_Vars.globals.Fakewalking ) {
-				flRetValue = flViewAnlge + 180.f;
+				flRetValue = flViewAngle + 180.f;
 			}
 		}
 
@@ -1173,7 +1473,7 @@ namespace Interfaces
 			iUpdates = 1;
 
 		if( !g_Vars.globals.m_bGround ) {
-			flRetValue = flViewAnlge + ( iUpdates % 2 ? -155.f : 155.f );
+			flRetValue = flViewAngle + ( iUpdates % 2 ? -155.f : 155.f );
 			++iUpdates;
 		}
 

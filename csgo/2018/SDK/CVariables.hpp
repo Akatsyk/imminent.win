@@ -788,46 +788,24 @@ public:
 
 #pragma region Antiaim group
 	group_begin(ANTIAIM_STATE);
+	config_option(bool, at_targets, false);
 	config_option(int, pitch, 0);
 	config_option(int, yaw, 0);
+	config_option(int, moving_yaw, 0);
+	config_option(int, realjitterrange, 0);
+	config_option(float, realrotationspeed, 0.f);
+	config_option(float, realrotationrange, 0.f);
+	config_option(float, staticangle, 0.f);
+	config_option(int, randomrange, 0);
 	config_option(int, twist, 0);
 	config_option(int, fakeyaw, 0);
+	config_option(float, relativeamount, 0.f);
 	config_option(float, rotationspeed, 0.f);
 	config_option(float, rotationrange, 0.f);
 	config_option(float, lagrotationspeed, 0.f);
 	config_option(float, lagrotationrange, 0.f);
 	config_option(int, jitterrange, 0);
 	config_option(int, base_yaw, 0);
-	config_option(bool, desync_enabled, false);
-	config_option(float, desync_amount, 60.f);
-	config_option(float, desync_amount_inverted, 60.f);
-	config_option(bool, desync_e_hold, false);
-	config_option(float, body_lean, 0.f);
-	config_option(float, inverted_body_lean, 0.f);
-
-	config_option(bool, jitter, false);
-	config_option(bool, jitter_in_air, false);
-	config_option(bool, jitter_moving, false);
-	config_option(bool, jitter_standing, false);
-	config_option(bool, jitter_walking, false);
-	config_option(int, jitter_type, 0);
-	config_option(float, jitter_range, 15.0f);
-
-	config_option(bool, inverter, false);
-	config_option(bool, inverter_in_air, false);
-	config_option(bool, inverter_moving, false);
-	config_option(bool, inverter_standing, false);
-	config_option(bool, inverter_walking, false);
-
-	config_option(bool, spin, false);
-	config_option(bool, spin_switch, false);
-	config_option(float, spin_range, 30.0f);
-	config_option(float, spin_speed, 4.0f);
-
-	config_option(bool, autodirection, false);
-	config_option(bool, autodirection_ignore_duck, false);
-
-	config_option(int, desync_autodir, 0); // Off/Hide Real/Hide Fake
 
 	group_end();
 
@@ -838,7 +816,6 @@ public:
 	config_option(FloatColor, manual_color, FloatColor(1.0f, 1.0f, 1.0f, 1.0f));
 	config_option(bool, bomb_activity, false);
 
-	config_keybind(desync_flip_bind);
 	config_keybind(manual_left_bind);
 	config_keybind(manual_right_bind);
 	config_keybind(manual_back_bind);
@@ -864,7 +841,10 @@ public:
 	config_option(bool, distort_disable_run, false);
 	config_option(bool, distort_disable_air, false);
 
-	config_option(bool, freestand, false);
+	config_option(bool, freestand_stand, false);
+	config_option(bool, freestand_move, false);
+	config_option(bool, stahlhelm, false);
+
 	config_option(bool, freestand_invert, false);
 	config_option(bool, freestand_lock, false);
 	config_option(bool, freestand_disable_fakewalk, false);
