@@ -761,10 +761,12 @@ public:
 	config_option(bool, prefer_safety_complex, false);
 
 	config_option(bool, prefer_body, false);
-	config_option(bool, prefer_body_disable_shot, false);
-	config_option(bool, prefer_body_disable_resolved, false);
-	config_option(bool, prefer_body_disable_safepoint_head, false);
-	config_option(bool, prefer_body_disable_low_damage, false);
+
+	// body aim conditions.
+	config_option(bool, prefer_body_always, false);
+	config_option(bool, prefer_body_when_lethal, false);
+	config_option(bool, prefer_body_if_not_resolved, false);
+	config_option(bool, prefer_body_if_in_air, false);
 
 	config_option(bool, mp_hitboxes_head, false);
 	config_option(bool, mp_hitboxes_chest, false);

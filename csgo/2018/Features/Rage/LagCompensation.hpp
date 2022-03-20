@@ -80,9 +80,61 @@ namespace Engine
 	public:
 		C_EntityLagData();
 
+		static void ShouldUseServerData(Encrypted_t< C_EntityLagData > pThis);
 		static void UpdateRecordData(Encrypted_t< C_EntityLagData > pThis, C_CSPlayer* player, const player_info_t& info, int updateType);
 
 		void Clear();
+
+		// TODO; proxy everything in here so we are using the most pristine data!
+		struct sPPDUData {
+			float m_flPrePoseParams[20];
+
+			C_AnimationLayer m_PreAnimLayers[13];
+			C_AnimationLayer m_PostAnimLayers[13];
+			bool m_bLayersDiffersFromRecord = false;
+
+			float  m_flPreSimulationTime;
+			bool m_bSimulationTimeDiffersFromRecord = false;
+
+			Vector m_vecPreNetOrigin;
+			Vector m_vecPostNetOrigin;
+			bool m_bOriginDiffersFromRecord = false;
+
+			QAngle m_angPreAbsAngles;
+			QAngle m_angPostAbsAngles;
+			bool m_bAbsAnglesDiffersFromRecord = false;
+
+			QAngle m_angPreEyeAngles;
+			QAngle m_angPostEyeAngles;
+			bool m_bEyeAnglesDiffersFromRecord = false;
+
+			float  m_flPreVelocityModifier;
+			float  m_flPostVelocityModifier;
+			bool m_bVelocityModifierDiffersFromRecord = false;
+
+			float  m_flPreShotTime;
+			float  m_flPostShotTime;
+			bool m_bShotTimeDiffersFromRecord = false;
+
+			//C_AnimationLayer m_LastOutputAnimLayers[13];
+
+			bool m_bShouldUseServerData = false;
+		} m_sPPDUData;
+
+		bool m_bShouldNetUpdate = false, m_bNetUpdateWasSilent = false;
+
+		struct sProxyData {
+			float m_flSimulationTime;
+			bool m_bRecievedSimTime = false;
+
+			float m_flEyeYawAngle;
+			bool m_bRecievedYawAngle = false;
+
+			// will be later used for flick prediction.
+			float m_flLowerBodyYaw;
+			int m_iTickRecievedLBYUpdate;
+			bool m_bLBYUpdated = false, m_bRecievedLBY = false;
+		} m_sProxyData;
 
 		std::deque<Engine::C_LagRecord> m_History = {};
 		int m_iUserID = -1;

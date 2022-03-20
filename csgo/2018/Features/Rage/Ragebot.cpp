@@ -1739,12 +1739,35 @@ namespace Interfaces
 		if (!local)
 			return false;
 
-		if (m_rage_data->rbot->prefer_body_disable_resolved) {
-			if (record->m_bResolved)
+		if (m_rage_data->rbot->prefer_body_always)
+			return true;
+
+		if (m_rage_data->rbot->prefer_body_when_lethal)
+		{
+			auto localWeapon = (C_WeaponCSBaseGun*)local->m_hActiveWeapon().Get();
+			if (!localWeapon)
 				return false;
+
+			Encrypted_t<CCSWeaponInfo> localWeaponInfo = localWeapon->GetCSWeaponData();
+			if (!localWeaponInfo.IsValid())
+				return false;
+
+			if (player->m_iHealth() <= localWeaponInfo.Xor()->m_iWeaponDamage)
+				return true;
 		}
 
-		return true;
+		if (m_rage_data->rbot->prefer_body_if_not_resolved && !record->m_bResolved)
+		{
+			// REMOVED FOR TESTING.
+			// added back for testing.
+			Math::AngleNormalize(player->m_flAnimationTime());
+			return true;
+		}
+
+		if (m_rage_data->rbot->prefer_body_if_in_air && !(player->m_fFlags() & FL_ONGROUND))
+			return true;
+
+		return false;
 	}
 
 	void C_Ragebot::ScanPoint(C_AimPoint* pPoint) {
@@ -1918,8 +1941,14 @@ namespace Interfaces
 			}
 		}
 
-		aim_target.preferBody = ((m_rage_data->rbot->prefer_body || !(record->m_iFlags & FL_ONGROUND)) && this->OverrideHitscan(player, record));
-		aim_target.preferHead = !aim_target.preferBody;
+		//aim_target.preferBody = ((m_rage_data->rbot->prefer_body || !(record->m_iFlags & FL_ONGROUND)) && this->OverrideHitscan(player, record));
+		//aim_target.preferHead = !aim_target.preferBody;
+
+		// eventually remove the onground check or put it in as the override hitscan check.
+		aim_target.preferBody = this->OverrideHitscan(player, record);
+
+		// eventually add in some menu variables and change this out into something else.
+		aim_target.preferHead = record->m_bResolved && !aim_target.preferBody;//!aim_target.preferBody;
 
 		auto addedPoints = 0;
 		for (int i = 0; i < HITBOX_MAX; i++) {

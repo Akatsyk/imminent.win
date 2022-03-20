@@ -68,6 +68,8 @@ public:
 	QAngle operator * ( float fl ) const;
 	QAngle operator / ( float fl ) const;
 
+	bool operator!=(const QAngle& src) const;
+
 public:
 	static QAngle Zero;
 

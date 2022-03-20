@@ -196,10 +196,13 @@ namespace Menu {
 
 					if (rbot->prefer_body || GUI::ctx->setup) {
 						std::vector<MultiItem_t> prefer_body_cond = {
-							{ XorStr("Target resolved"), &rbot->prefer_body_disable_resolved }
+							{ XorStr("Always"), &rbot->prefer_body_always },
+							{ XorStr("When Target is Lethal"), &rbot->prefer_body_when_lethal },
+							{ XorStr("Target Not Resolved"), &rbot->prefer_body_if_not_resolved },
+							{ XorStr("Target is in Air"), &rbot->prefer_body_if_in_air }
 						};
 
-						GUI::Controls::MultiDropdown(XorStr("Prefer body-aim disablers##PreferBody") + std::string(XorStr("#") + std::to_string(rage_current_group)), prefer_body_cond);
+						GUI::Controls::MultiDropdown(XorStr("Conditions##PreferBody") + std::string(XorStr("#") + std::to_string(rage_current_group)), prefer_body_cond);
 					}
 
 					GUI::Controls::Checkbox(XorStr("Delay hitbox selection") + std::string(XorStr("#") + std::to_string(rage_current_group)), &rbot->shotdelay);

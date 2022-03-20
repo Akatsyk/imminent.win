@@ -180,6 +180,45 @@ namespace Engine
 		lagData->m_flServerLatency = netchannel->GetLatency(FLOW_INCOMING);
 	}
 
+	// TODO; MOVE THE FOLLOWING TO C_AnimationData::Collect() AND USE THE REST OF THIS DATA HERE TO KNOW WHEN TO UPDATE OUR ANIMATIONS!
+	void ValidateServerDataWithRecords(Encrypted_t< C_EntityLagData > pThis)
+	{
+		if (!pThis.IsValid() || pThis->m_History.empty() || pThis->m_History.size() < 2)
+			return;
+
+		auto animData = AnimationSystem::Get()->GetAnimationData(pThis->m_History.front().player->m_entIndex);
+		if (!animData)
+			return;
+
+		if (animData->m_AnimationRecord.empty())
+			return;
+
+		auto& ppduDataPointer = pThis->m_sPPDUData;
+		auto animRecord = &animData->m_AnimationRecord.front();
+		auto record = pThis->m_History.front();
+
+		if (ppduDataPointer.m_bAbsAnglesDiffersFromRecord)
+			record.m_angAngles = ppduDataPointer.m_angPostAbsAngles;
+
+		if (ppduDataPointer.m_bEyeAnglesDiffersFromRecord)
+		{
+			record.m_flEyePitch = ppduDataPointer.m_angPostEyeAngles.x;
+			record.m_flEyeYaw = ppduDataPointer.m_angPostEyeAngles.y;
+		}
+
+		if (ppduDataPointer.m_bOriginDiffersFromRecord)
+			record.m_vecOrigin = ppduDataPointer.m_vecPostNetOrigin;
+
+		if (ppduDataPointer.m_bShotTimeDiffersFromRecord)
+			animRecord->m_flShotTime = ppduDataPointer.m_flPostShotTime;
+	}
+
+	void Engine::C_EntityLagData::ShouldUseServerData(Encrypted_t< C_EntityLagData > pThis)
+	{
+		if (pThis->m_sPPDUData.m_bShouldUseServerData)
+			return ValidateServerDataWithRecords(pThis);
+	}
+
 	void Engine::C_EntityLagData::UpdateRecordData(Encrypted_t< C_EntityLagData > pThis, C_CSPlayer* player, const player_info_t& info, int updateType) {
 		auto local = C_CSPlayer::GetLocalPlayer();
 		auto team_check = g_Vars.rage.enabled && !g_Vars.rage.team_check && player->IsTeammate(C_CSPlayer::GetLocalPlayer());
@@ -263,6 +302,8 @@ namespace Engine
 		record->m_iServerTick = Interfaces::m_pEngine->GetServerTick();
 
 		std::memcpy(record->m_BoneMatrix, anim_data->m_Bones, player->m_CachedBoneData().Count() * sizeof(matrix3x4_t));
+
+		ValidateServerDataWithRecords(pThis);
 	}
 
 	bool Engine::C_EntityLagData::DetectAutoDirerction(Encrypted_t< C_EntityLagData > pThis, C_CSPlayer* player) {

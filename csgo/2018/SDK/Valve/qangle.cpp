@@ -1,6 +1,8 @@
 #include "qangle.hpp"
 #include "vector.hpp"
 
+#define CHECK_VALID( _v ) 0
+
 QAngle::QAngle( ) {
    this->Set( );
 }
@@ -21,6 +23,13 @@ void QAngle::Set( float x /*= 0.0f*/, float y /*= 0.0f */, float z /*= 0.0f*/ ) 
    this->x = x;
    this->y = y;
    this->z = z;
+}
+
+bool QAngle::operator!=(const QAngle& src) const
+{
+	CHECK_VALID(src);
+	CHECK_VALID(*this);
+	return (src.x != x) || (src.y != y) || (src.z != z);
 }
 
 void QAngle::Normalize( ) {

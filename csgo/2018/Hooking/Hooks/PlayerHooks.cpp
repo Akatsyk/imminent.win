@@ -15,120 +15,274 @@ std::map< int, Hooked::PlayerHook > Hooked::player_hooks;
 
 namespace Hooked
 {
-	void __fastcall PostDataUpdate( uintptr_t ecx, void* edx, int updateType );
+	void __fastcall PreDataUpdate(uintptr_t ecx, void* edx, int updateType);
+	void __fastcall PostDataUpdate(uintptr_t ecx, void* edx, int updateType);
 
-	void __fastcall DoExtraBonesProccesing( C_CSPlayer* ecx, void* edx, CStudioHdr* hdr, Vector* pos, Quaternion* rotations, matrix3x4_t* transforma, void* bone_list, void* ik_context ) {
-		g_Vars.globals.szLastHookCalled = XorStr( "22" );
+	void __fastcall DoExtraBonesProccesing(C_CSPlayer* ecx, void* edx, CStudioHdr* hdr, Vector* pos, Quaternion* rotations, matrix3x4_t* transforma, void* bone_list, void* ik_context) {
+		g_Vars.globals.szLastHookCalled = XorStr("22");
 		//printf( "debp called\n" );
 
-		auto& hook = player_hooks[ ecx->m_entIndex ];
+		auto& hook = player_hooks[ecx->m_entIndex];
 
-		using Fn = void( __thiscall* )( C_CSPlayer*, CStudioHdr*, Vector*, Quaternion*, matrix3x4_t*, void*, void* );
-		auto _do_extra_bone_processing = hook.clientHook.VCall< Fn >( 197 );
+		using Fn = void(__thiscall*)(C_CSPlayer*, CStudioHdr*, Vector*, Quaternion*, matrix3x4_t*, void*, void*);
+		auto _do_extra_bone_processing = hook.clientHook.VCall< Fn >(197);
 
-		if( ecx->m_fEffects( ) & 8 )
+		if (ecx->m_fEffects() & 8)
 			return;
 
-		auto animState = ecx->m_PlayerAnimState( );
+		auto animState = ecx->m_PlayerAnimState();
 
-		if( !animState )
-			_do_extra_bone_processing( ecx, hdr, pos, rotations, transforma, bone_list, ik_context );
+		if (!animState)
+			_do_extra_bone_processing(ecx, hdr, pos, rotations, transforma, bone_list, ik_context);
 
-		const auto backup_tickcount = *reinterpret_cast< int32_t* >( animState + 8 );
-		*reinterpret_cast< int32_t* >( animState + 8 ) = 0;
-		_do_extra_bone_processing( ecx, hdr, pos, rotations, transforma, bone_list, ik_context );
-		*reinterpret_cast< int32_t* >( animState + 8 ) = backup_tickcount;
+		const auto backup_tickcount = *reinterpret_cast<int32_t*>(animState + 8);
+		*reinterpret_cast<int32_t*>(animState + 8) = 0;
+		_do_extra_bone_processing(ecx, hdr, pos, rotations, transforma, bone_list, ik_context);
+		*reinterpret_cast<int32_t*>(animState + 8) = backup_tickcount;
 	}
 
-	Hooked::PlayerHook::~PlayerHook( ) {
-		clientHook.Destroy( );
-		renderableHook.Destroy( );
-		networkableHook.Destroy( );
+	Hooked::PlayerHook::~PlayerHook() {
+		clientHook.Destroy();
+		renderableHook.Destroy();
+		networkableHook.Destroy();
 	}
 
-	void Hooked::PlayerHook::SetHooks( ) {
-		networkableHook.Hook( hkEntityRelease, 1 );
-		networkableHook.Hook( PostDataUpdate, 7 );
-		renderableHook.Hook( hkSetupBones, 13 );
+	void Hooked::PlayerHook::SetHooks() {
+		networkableHook.Hook(hkEntityRelease, 1);
+		networkableHook.Hook(PreDataUpdate, 6);
+		networkableHook.Hook(PostDataUpdate, 7);
+		renderableHook.Hook(hkSetupBones, 13);
 		//clientHook.Hook( DoExtraBonesProccesing, 197 );
 	}
 
-	bool __fastcall hkSetupBones( uintptr_t ecx, void* edx, matrix3x4_t* matrix, int bone_count, int bone_mask, float time ) {
-		if( !ecx )
+	bool __fastcall hkSetupBones(uintptr_t ecx, void* edx, matrix3x4_t* matrix, int bone_count, int bone_mask, float time) {
+		if (!ecx)
 			return false;
 
-		auto player = reinterpret_cast< C_BasePlayer* >( ecx - 0x4 );
-		if( !player )
+		auto player = reinterpret_cast<C_BasePlayer*>(ecx - 0x4);
+		if (!player)
 			return false;
 
-		auto& hook = player_hooks[ player->m_entIndex ];
+		auto& hook = player_hooks[player->m_entIndex];
 
-		using SetupBonesFn = bool( __thiscall* )( uintptr_t, matrix3x4_t*, int, int, float );
-		auto oSetupBones = hook.renderableHook.VCall< SetupBonesFn >( 13 );
+		using SetupBonesFn = bool(__thiscall*)(uintptr_t, matrix3x4_t*, int, int, float);
+		auto oSetupBones = hook.renderableHook.VCall< SetupBonesFn >(13);
 
-		C_CSPlayer* pLocal = C_CSPlayer::GetLocalPlayer( );
+		C_CSPlayer* pLocal = C_CSPlayer::GetLocalPlayer();
 
-		if( !pLocal )
+		if (!pLocal)
 			return false;
 
-		if( player->EntIndex( ) != pLocal->EntIndex( ) ) {
-			auto ret = oSetupBones( ecx, matrix, bone_count, bone_mask, time );
+		if (player->EntIndex() != pLocal->EntIndex()) {
+			auto ret = oSetupBones(ecx, matrix, bone_count, bone_mask, time);
 			return ret;
 		}
 
-		if( matrix ) {
-			if( bone_count < player->m_CachedBoneData( ).Count( ) )
+		if (matrix) {
+			if (bone_count < player->m_CachedBoneData().Count())
 				return false;
 
-			std::memcpy( matrix, player->m_CachedBoneData( ).Base( ), sizeof( matrix3x4_t ) * player->m_CachedBoneData( ).Count( ) );
+			std::memcpy(matrix, player->m_CachedBoneData().Base(), sizeof(matrix3x4_t) * player->m_CachedBoneData().Count());
 		}
 
 		return true;
 	}
 
-	void __fastcall hkEntityRelease( uintptr_t ecx, void* edx ) {
-		g_Vars.globals.szLastHookCalled = XorStr( "24" );
-		auto entity = reinterpret_cast< C_BaseEntity* >( ecx - 0x8 );
+	void __fastcall hkEntityRelease(uintptr_t ecx, void* edx) {
+		g_Vars.globals.szLastHookCalled = XorStr("24");
+		auto entity = reinterpret_cast<C_BaseEntity*>(ecx - 0x8);
 
-		auto& hook = player_hooks[ entity->m_entIndex ];
+		auto& hook = player_hooks[entity->m_entIndex];
 
-		using Fn = void( __thiscall* )( uintptr_t );
-		auto orig = hook.networkableHook.VCall< Fn >( 1 );
+		using Fn = void(__thiscall*)(uintptr_t);
+		auto orig = hook.networkableHook.VCall< Fn >(1);
 
-		player_hooks.erase( entity->m_entIndex );
+		player_hooks.erase(entity->m_entIndex);
 
-		orig( ecx );
+		orig(ecx);
 	}
 
-	void __fastcall PostDataUpdate( uintptr_t ecx, void* edx, int updateType ) {
-		g_Vars.globals.szLastHookCalled = XorStr( "25" );
-		auto entity = reinterpret_cast< C_CSPlayer* >( ecx - 0x8 );
+	static float simtime2 = 9999999237498237498723984729999999999.0f;
+	static float simtime3 = 9999999237498237498723984729999999999.0f;
+	void __fastcall PreDataUpdate(uintptr_t ecx, void* edx, int updateType) {
+		g_Vars.globals.szLastHookCalled = XorStr("25");
+		auto entity = reinterpret_cast<C_CSPlayer*>(ecx - 0x8);
 
-		auto& hook = player_hooks[ entity->m_entIndex ];
+		auto& hook = player_hooks[entity->m_entIndex];
 
-		using Fn = void( __thiscall* )( uintptr_t, int );
-		auto orig = hook.networkableHook.VCall< Fn >( 7 );
+		using Fn = void(__thiscall*)(uintptr_t, int);
+		auto orig = hook.networkableHook.VCall< Fn >(6);
 
-		auto local = C_CSPlayer::GetLocalPlayer( );
+		auto local = C_CSPlayer::GetLocalPlayer();
 
-		if( local == entity )
-			ISkinChanger::Get( )->OnNetworkUpdate( true );
+		if (local == entity)
+			return orig(ecx, updateType);
 
-		orig( ecx, updateType );
+		auto lagData = Engine::LagCompensation::Get()->GetLagData(entity->m_entIndex);
+		if (!lagData.IsValid() || lagData->m_History.empty())
+			return orig(ecx, updateType);
 
-		if( local == entity )
-			ISkinChanger::Get( )->OnNetworkUpdate( false );
+		// this check is so fucking bad holy shit
+		//if (updateType != 0 && lagData.IsValid() && !lagData.Xor()->m_History.empty() && lagData->m_History.front().player == entity && !lagData->m_History.front().player->IsDormant())
+		//{
+			// call restore record here.
+		//}
+
+		// determine whether we should update our networking or not
+		lagData->m_bShouldNetUpdate = updateType <= 1; // DATA_UPDATE_DATATABLE_CHANGED
+
+		// store pre update data
+		auto& ppduDataPointer = lagData->m_sPPDUData;
+		entity->CopyPoseParameters(ppduDataPointer.m_flPrePoseParams);
+		entity->CopyAnimLayers(ppduDataPointer.m_PreAnimLayers);
+		ppduDataPointer.m_flPreSimulationTime = lagData->m_sProxyData.m_bRecievedSimTime ? lagData->m_sProxyData.m_flSimulationTime : entity->m_flSimulationTime();
+		ppduDataPointer.m_vecPreNetOrigin = entity->GetNetworkOrigin();
+		ppduDataPointer.m_angPreAbsAngles = entity->GetAbsAngles();
+		ppduDataPointer.m_angPreEyeAngles = lagData->m_sProxyData.m_bRecievedYawAngle ? QAngle(entity->m_angEyeAngles().x, lagData->m_sProxyData.m_flEyeYawAngle, entity->m_angEyeAngles().z) : entity->m_angEyeAngles();
+		ppduDataPointer.m_flPreVelocityModifier = entity->m_flVelocityModifier();
+		ppduDataPointer.m_flPreShotTime = 0.0f;
+		if (auto weapon = (C_WeaponCSBaseGun*)entity->m_hActiveWeapon().Get())
+			ppduDataPointer.m_flPreShotTime = weapon->m_fLastShotTime();
+
+		// stop animstate->update from calling so when we store our layers later our data will be accurate with the server.
+		if (auto animState = entity->m_PlayerAnimState())
+			animState->m_nLastFrame = Interfaces::m_pGlobalVars->framecount;
+
+		// initalize these variables as false before continuation.
+		ppduDataPointer.m_bOriginDiffersFromRecord = false;
+		ppduDataPointer.m_bLayersDiffersFromRecord = false;
+		ppduDataPointer.m_bAbsAnglesDiffersFromRecord = false;
+		ppduDataPointer.m_bEyeAnglesDiffersFromRecord = false;
+		ppduDataPointer.m_bVelocityModifierDiffersFromRecord = false;
+		ppduDataPointer.m_bShotTimeDiffersFromRecord = false;
+
+		if (local != entity)
+			simtime3 = lagData->m_sProxyData.m_bRecievedSimTime ? lagData->m_sProxyData.m_flSimulationTime : entity->m_flSimulationTime();
+
+		orig(ecx, updateType);
+
+		if (local != entity)
+			simtime2 = lagData->m_sProxyData.m_bRecievedSimTime ? lagData->m_sProxyData.m_flSimulationTime : entity->m_flSimulationTime();
 	}
 
-	IClientNetworkable* hkCreateCCSPlayer( int entnum, int serialNum ) {
-		g_Vars.globals.szLastHookCalled = XorStr( "26" );
-		auto entity = ( IClientNetworkable* )oCreateCCSPlayer( entnum, serialNum );
+	void __fastcall PostDataUpdate(uintptr_t ecx, void* edx, int updateType) {
+		g_Vars.globals.szLastHookCalled = XorStr("25");
+		auto entity = reinterpret_cast<C_CSPlayer*>(ecx - 0x8);
 
-		auto& new_hook = player_hooks[ entnum ];
-		new_hook.clientHook.Create( ( void* )( ( uintptr_t )entity - 0x8 ) );
-		new_hook.renderableHook.Create( ( void* )( ( uintptr_t )entity - 0x4 ) );
-		new_hook.networkableHook.Create( entity );
-		new_hook.SetHooks( );
+		auto& hook = player_hooks[entity->m_entIndex];
+
+		using Fn = void(__thiscall*)(uintptr_t, int);
+		auto orig = hook.networkableHook.VCall< Fn >(7);
+
+		auto local = C_CSPlayer::GetLocalPlayer();
+
+		if (local == entity)
+			ISkinChanger::Get()->OnNetworkUpdate(true);
+
+		auto lagData = Engine::LagCompensation::Get()->GetLagData(entity->m_entIndex);
+		if (!lagData.IsValid() || lagData->m_History.empty() || !lagData->m_History.front().m_bIsValid)
+			return orig(ecx, updateType);
+
+		auto& ppduDataPointer = lagData->m_sPPDUData;
+
+		// variable initialization
+		ppduDataPointer.m_bShouldUseServerData = false;
+
+		bool dataModified = false;
+
+		Vector networkOrigin = entity->GetNetworkOrigin();
+		if (ppduDataPointer.m_vecPreNetOrigin != networkOrigin)
+		{
+			ppduDataPointer.m_vecPostNetOrigin = networkOrigin;
+			ppduDataPointer.m_bOriginDiffersFromRecord = true;
+			dataModified = true;
+		}
+
+		float velocityModifier = entity->m_flVelocityModifier();
+		if (ppduDataPointer.m_flPreVelocityModifier != velocityModifier)
+		{
+			ppduDataPointer.m_flPostVelocityModifier = velocityModifier;
+			ppduDataPointer.m_bVelocityModifierDiffersFromRecord = true;
+			dataModified = true;
+		}
+
+		ppduDataPointer.m_flPostShotTime = ppduDataPointer.m_flPreShotTime;
+		if (auto weapon = (C_WeaponCSBaseGun*)entity->m_hActiveWeapon().Get())
+		{
+			float shotTime = weapon->m_fLastShotTime();
+			ppduDataPointer.m_flPostShotTime = shotTime;
+
+			if (ppduDataPointer.m_flPreShotTime != 0.0f && ppduDataPointer.m_flPreShotTime != shotTime)
+			{
+				ppduDataPointer.m_bShotTimeDiffersFromRecord = true;
+				dataModified = true;
+			}
+		}
+
+		for (int i = 0; i < entity->m_AnimOverlay().Count(); i++)
+		{
+			C_AnimationLayer* currentLayer = &entity->m_AnimOverlay()[i];
+			C_AnimationLayer* previousLayer = &ppduDataPointer.m_PreAnimLayers[i];
+			if (currentLayer->m_nSequence != previousLayer->m_nSequence
+			||  currentLayer->m_flWeightDeltaRate != previousLayer->m_flWeightDeltaRate
+			||  currentLayer->m_flCycle != previousLayer->m_flCycle
+			||  currentLayer->m_flWeight != previousLayer->m_flWeight
+			||  currentLayer->m_flPlaybackRate != previousLayer->m_flPlaybackRate)
+			{
+				ppduDataPointer.m_bLayersDiffersFromRecord = true;
+				dataModified = true;
+				break;
+			}
+		}
+
+		QAngle absAngles = entity->GetAbsAngles();
+		if (ppduDataPointer.m_angPreAbsAngles != absAngles) {
+			ppduDataPointer.m_angPostAbsAngles = absAngles;
+
+			// this check isn't the most needed but fuck it we might as well be as accurate as possible!
+			ppduDataPointer.m_bAbsAnglesDiffersFromRecord = true;
+		}
+
+		QAngle eyeAngles = entity->m_angEyeAngles();
+		if (ppduDataPointer.m_angPreEyeAngles != eyeAngles) {
+			ppduDataPointer.m_angPostEyeAngles = eyeAngles;
+			ppduDataPointer.m_bEyeAnglesDiffersFromRecord = true;
+			dataModified = true;
+		}
+
+		const float simTime = lagData->m_sProxyData.m_bRecievedSimTime ? lagData->m_sProxyData.m_flSimulationTime : entity->m_flSimulationTime();
+		if (ppduDataPointer.m_flPreSimulationTime != simTime)
+		{
+			ppduDataPointer.m_bSimulationTimeDiffersFromRecord = true;
+			dataModified = true;
+		}
+
+		if (dataModified)
+		{
+			if (ppduDataPointer.m_bLayersDiffersFromRecord)
+				entity->CopyAnimLayers(ppduDataPointer.m_PostAnimLayers);
+
+			if (!ppduDataPointer.m_bSimulationTimeDiffersFromRecord || simTime < ppduDataPointer.m_flPreSimulationTime)
+				lagData->m_bNetUpdateWasSilent = true;
+
+			ppduDataPointer.m_bShouldUseServerData = true;
+		}
+
+		orig(ecx, updateType);
+
+		if (local == entity)
+			ISkinChanger::Get()->OnNetworkUpdate(false);
+	}
+
+	IClientNetworkable* hkCreateCCSPlayer(int entnum, int serialNum) {
+		g_Vars.globals.szLastHookCalled = XorStr("26");
+		auto entity = (IClientNetworkable*)oCreateCCSPlayer(entnum, serialNum);
+
+		auto& new_hook = player_hooks[entnum];
+		new_hook.clientHook.Create((void*)((uintptr_t)entity - 0x8));
+		new_hook.renderableHook.Create((void*)((uintptr_t)entity - 0x4));
+		new_hook.networkableHook.Create(entity);
+		new_hook.SetHooks();
 		return entity;
 	}
 }

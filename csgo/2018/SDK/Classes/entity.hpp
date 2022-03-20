@@ -238,6 +238,7 @@ public:
 
 	void SetAbsVelocity( const Vector& velocity );
 	Vector& GetAbsVelocity( );
+	Vector& GetNetworkOrigin();
 	void SetAbsOrigin( const Vector& origin );
 	void InvalidatePhysicsRecursive( int change_flags );
 	void SetAbsAngles( const QAngle& angles );
@@ -299,6 +300,8 @@ public:
 	bool& m_bShouldDraw( );
 	float& m_flLastBoneSetupTime( );
 	float* m_flPoseParameter( );
+	void CopyPoseParameters(float* dest);
+	void CopyAnimLayers(C_AnimationLayer* dest);
 
 public:
 	CBoneAccessor& m_BoneAccessor( );
