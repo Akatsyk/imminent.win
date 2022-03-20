@@ -102,13 +102,15 @@ namespace Hooked
 	{
 		g_Vars.globals.szLastHookCalled = XorStr("29");
 
-		if (!Interfaces::m_pEngine->IsInGame() || !Interfaces::m_pEngine->IsConnected() || !pData || !pStruct || !pOut || !C_CSPlayer::GetLocalPlayer())
+		if (!pData || !pStruct || !pOut)
 			return;
+
+		Interfaces::m_pFlSimulationTime->GetOriginalFunction()(pData, pStruct, pOut);
 
 		C_CSPlayer* pEntity = (C_CSPlayer*)pEntity;
 		float returnTime = pData->m_Value.m_Float;
 
-		if (pEntity && pEntity->IsPlayer() && pEntity != C_CSPlayer::GetLocalPlayer()) 
+		if (Interfaces::m_pEngine->IsInGame() && Interfaces::m_pEngine->IsConnected() && C_CSPlayer::GetLocalPlayer() && pEntity && pEntity->IsPlayer() && pEntity != C_CSPlayer::GetLocalPlayer())
 		{
 			auto lagData = Engine::LagCompensation::Get()->GetLagData(pEntity->EntIndex()).Xor();
 			if (lagData && lagData->m_History.size()) 
@@ -131,11 +133,13 @@ namespace Hooked
 	{
 		g_Vars.globals.szLastHookCalled = XorStr("29");
 
-		if (!Interfaces::m_pEngine->IsInGame() || !Interfaces::m_pEngine->IsConnected() || !pData || !pStruct || !pOut || !C_CSPlayer::GetLocalPlayer())
+		if (!pData || !pStruct || !pOut)
 			return;
 
+		Interfaces::m_pFlLowerBodyYaw->GetOriginalFunction()(pData, pStruct, pOut);
+
 		C_CSPlayer* pEntity = (C_CSPlayer*)pEntity;
-		if (pEntity && pEntity->IsPlayer() && pEntity != C_CSPlayer::GetLocalPlayer())
+		if (Interfaces::m_pEngine->IsInGame() && Interfaces::m_pEngine->IsConnected() && C_CSPlayer::GetLocalPlayer() && pEntity && pEntity->IsPlayer() && pEntity != C_CSPlayer::GetLocalPlayer())
 		{
 			auto lagData = Engine::LagCompensation::Get()->GetLagData(pEntity->EntIndex()).Xor();
 			if (lagData && lagData->m_History.size())
@@ -160,11 +164,13 @@ namespace Hooked
 	{
 		g_Vars.globals.szLastHookCalled = XorStr("29");
 
-		if (!Interfaces::m_pEngine->IsInGame() || !Interfaces::m_pEngine->IsConnected() || !pData || !pStruct || !pOut || !C_CSPlayer::GetLocalPlayer())
+		if (!pData || !pStruct || !pOut)
 			return;
 
+		Interfaces::m_pEyeAnglesY->GetOriginalFunction()(pData, pStruct, pOut);
+
 		C_CSPlayer* pEntity = (C_CSPlayer*)pEntity;
-		if (pEntity && pEntity->IsPlayer() && pEntity != C_CSPlayer::GetLocalPlayer())
+		if (Interfaces::m_pEngine->IsInGame() && Interfaces::m_pEngine->IsConnected() && C_CSPlayer::GetLocalPlayer() && pEntity && pEntity->IsPlayer() && pEntity != C_CSPlayer::GetLocalPlayer())
 		{
 			auto lagData = Engine::LagCompensation::Get()->GetLagData(pEntity->EntIndex()).Xor();
 			if (lagData && lagData->m_History.size())
