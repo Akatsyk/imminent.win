@@ -135,10 +135,10 @@ namespace Hooked
 		auto& ppduDataPointer = lagData->m_sPPDUData;
 		entity->CopyPoseParameters(ppduDataPointer.m_flPrePoseParams);
 		entity->CopyAnimLayers(ppduDataPointer.m_PreAnimLayers);
-		ppduDataPointer.m_flPreSimulationTime = lagData->m_sProxyData.m_bRecievedSimTime ? lagData->m_sProxyData.m_flSimulationTime : entity->m_flSimulationTime();
+		ppduDataPointer.m_flPreSimulationTime = entity->m_flSimulationTime();
 		ppduDataPointer.m_vecPreNetOrigin = entity->GetNetworkOrigin();
 		ppduDataPointer.m_angPreAbsAngles = entity->GetAbsAngles();
-		ppduDataPointer.m_angPreEyeAngles = lagData->m_sProxyData.m_bRecievedYawAngle ? QAngle(entity->m_angEyeAngles().x, lagData->m_sProxyData.m_flEyeYawAngle, entity->m_angEyeAngles().z) : entity->m_angEyeAngles();
+		ppduDataPointer.m_angPreEyeAngles = entity->m_angEyeAngles();
 		ppduDataPointer.m_flPreVelocityModifier = entity->m_flVelocityModifier();
 		ppduDataPointer.m_flPreShotTime = 0.0f;
 		if (auto weapon = (C_WeaponCSBaseGun*)entity->m_hActiveWeapon().Get())
@@ -157,12 +157,12 @@ namespace Hooked
 		ppduDataPointer.m_bShotTimeDiffersFromRecord = false;
 
 		if (local != entity)
-			simtime3 = lagData->m_sProxyData.m_bRecievedSimTime ? lagData->m_sProxyData.m_flSimulationTime : entity->m_flSimulationTime();
+			simtime3 = entity->m_flSimulationTime(); 
 
 		orig(ecx, updateType);
 
 		if (local != entity)
-			simtime2 = lagData->m_sProxyData.m_bRecievedSimTime ? lagData->m_sProxyData.m_flSimulationTime : entity->m_flSimulationTime();
+			simtime2 = entity->m_flSimulationTime();
 	}
 
 	void __fastcall PostDataUpdate(uintptr_t ecx, void* edx, int updateType) {
@@ -179,6 +179,7 @@ namespace Hooked
 		if (local == entity)
 			ISkinChanger::Get()->OnNetworkUpdate(true);
 
+		
 		auto lagData = Engine::LagCompensation::Get()->GetLagData(entity->m_entIndex);
 		if (!lagData.IsValid() || lagData->m_History.empty() || !lagData->m_History.front().m_bIsValid)
 			return orig(ecx, updateType);
@@ -250,7 +251,7 @@ namespace Hooked
 			dataModified = true;
 		}
 
-		const float simTime = lagData->m_sProxyData.m_bRecievedSimTime ? lagData->m_sProxyData.m_flSimulationTime : entity->m_flSimulationTime();
+		const float simTime = entity->m_flSimulationTime();
 		if (ppduDataPointer.m_flPreSimulationTime != simTime)
 		{
 			ppduDataPointer.m_bSimulationTimeDiffersFromRecord = true;
@@ -266,7 +267,7 @@ namespace Hooked
 				lagData->m_bNetUpdateWasSilent = true;
 
 			ppduDataPointer.m_bShouldUseServerData = true;
-		}
+		} 
 
 		orig(ecx, updateType);
 

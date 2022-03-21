@@ -123,18 +123,18 @@ namespace Engine
 
 		bool m_bShouldNetUpdate = false, m_bNetUpdateWasSilent = false;
 
-		struct sProxyData {
-			float m_flSimulationTime;
-			bool m_bRecievedSimTime = false;
+		//struct sProxyData {
+		//	float m_flSimulationTime;
+		//	bool m_bRecievedSimTime = false;
 
-			float m_flEyeYawAngle;
-			bool m_bRecievedYawAngle = false;
+		//	float m_flEyeYawAngle;
+		//	bool m_bRecievedYawAngle = false;
 
-			// will be later used for flick prediction.
-			float m_flLowerBodyYaw;
-			int m_iTickRecievedLBYUpdate;
-			bool m_bLBYUpdated = false, m_bRecievedLBY = false;
-		} m_sProxyData;
+		//	// will be later used for flick prediction.
+		//	float m_flLowerBodyYaw;
+		//	int m_iTickRecievedLBYUpdate;
+		//	bool m_bLBYUpdated = false, m_bRecievedLBY = false;
+		//} m_sProxyData;
 
 		std::deque<Engine::C_LagRecord> m_History = {};
 		int m_iUserID = -1;

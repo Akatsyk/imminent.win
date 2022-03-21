@@ -1076,14 +1076,14 @@ namespace Interfaces
 		pPropManager->GetProp( XorStr( "DT_BaseAnimating" ), XorStr( "bClientSideAnimation" ), &prop );
 		m_bClientSideAnimationSwap = std::make_shared<RecvPropHook>( prop, &Hooked::m_bClientSideAnimation );
 
-		pPropManager->GetProp(XorStr("DT_CSPlayer"), XorStr("m_angEyeAngles[1]"), &prop);
-		m_pEyeAnglesY = std::make_shared<RecvPropHook>(prop, &Hooked::RecvProxy_m_angEyeAnglesY);
+		//pPropManager->GetProp(XorStr("DT_CSPlayer"), XorStr("m_angEyeAngles[1]"), &prop);
+		//m_pEyeAnglesY = std::make_shared<RecvPropHook>(prop, &Hooked::RecvProxy_m_angEyeAnglesY);
 
-		pPropManager->GetProp(XorStr("DT_CSPlayer"), XorStr("m_flLowerBodyYawTarget"), &prop);
-		m_pFlLowerBodyYaw = std::make_shared<RecvPropHook>(prop, &Hooked::RecvProxy_m_flLowerBodyYawTarget);
+		//pPropManager->GetProp(XorStr("DT_CSPlayer"), XorStr("m_flLowerBodyYawTarget"), &prop);
+		//m_pFlLowerBodyYaw = std::make_shared<RecvPropHook>(prop, &Hooked::RecvProxy_m_flLowerBodyYawTarget);
 
-		pPropManager->GetProp(XorStr("DT_BaseEntity"), XorStr("m_flSimulationTime"), &prop);
-		m_pFlSimulationTime = std::make_shared<RecvPropHook>(prop, &Hooked::RecvProxy_m_flSimulationTime);
+		//pPropManager->GetProp(XorStr("DT_BaseEntity"), XorStr("m_flSimulationTime"), &prop);
+		//m_pFlSimulationTime = std::make_shared<RecvPropHook>(prop, &Hooked::RecvProxy_m_flSimulationTime);
 
 		//auto& database = pPropManager->database;
 		//auto BaseOverlay = std::find( database.begin( ), database.end( ), XorStr( "DT_BaseAnimatingOverlay" ) );

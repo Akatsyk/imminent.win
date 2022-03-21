@@ -17,7 +17,7 @@ namespace Menu {
 			if (GUI::Form::BeginTab(0, XorStr("A")) || GUI::ctx->setup) {
 
 				CVariables::RAGE* rbot = nullptr;
-				GUI::Group::BeginGroup(XorStr("General"), Vector2D(50, 80));
+				GUI::Group::BeginGroup(XorStr("Aimbot"), Vector2D(50, 60));
 				GUI::Controls::Checkbox(XorStr("Enabled##rage"), &g_Vars.rage.enabled);
 				GUI::Controls::Hotkey(XorStr("Enabled key##rage"), &g_Vars.rage.key);
 
@@ -153,7 +153,7 @@ namespace Menu {
 				}
 				GUI::Group::EndGroup();
 
-				GUI::Group::BeginGroup(XorStr("Fake lag"), Vector2D(50, 20));
+				GUI::Group::BeginGroup(XorStr("Fake lag"), Vector2D(50, 40)); 
 				{
 					GUI::Controls::Checkbox(XorStr("Enabled##fakeKURWAlag"), &g_Vars.fakelag.enabled);
 
@@ -175,7 +175,7 @@ namespace Menu {
 					GUI::Group::EndGroup();
 				}
 
-				GUI::Group::BeginGroup(XorStr("Other"), Vector2D(50, 40)); {
+				GUI::Group::BeginGroup(XorStr("Accuracy"), Vector2D(50, 50)); {
 
 					if (!g_Vars.misc.anti_untrusted || GUI::ctx->setup)
 						GUI::Controls::Checkbox(XorStr("Compensate spread") + std::string(XorStr("#") + std::to_string(rage_current_group)), &rbot->compensate_spread);
@@ -218,24 +218,36 @@ namespace Menu {
 
 				CVariables::ANTIAIM_STATE* settings = &g_Vars.antiaim_stand;
 
-				GUI::Group::BeginGroup(XorStr("Real anti-aim"), Vector2D(50, 50));
+				GUI::Group::BeginGroup(XorStr("Anti aim"), Vector2D(50, 50));
 				{
 					GUI::Controls::Checkbox(XorStr("Enabled##aa"), &g_Vars.antiaim.enabled);
 					GUI::Controls::Dropdown(XorStr("Pitch"), { XorStr("Off"), XorStr("Down"), XorStr("Up"), XorStr("Zero"), XorStr("Minimal") }, &settings->pitch);
 					GUI::Controls::Dropdown(XorStr("Yaw"), { XorStr("Off"), XorStr("180"), XorStr("180 Jitter"), XorStr("Jitter"), XorStr("Spin"), XorStr("Random"), XorStr("Static"), XorStr("180z") }, &settings->base_yaw);
-					if (settings->base_yaw > 0)
-					{
-						if (settings->base_yaw == 3)
-							GUI::Controls::Slider(XorStr(""), &settings->realjitterrange, -180, 180);
-
-						if (settings->base_yaw == 4)
-						{
-							GUI::Controls::Slider(XorStr(""), &settings->realrotationrange, -180, 180);
-							GUI::Controls::Slider(XorStr(""), &settings->realrotationspeed, 0, 20);
-						}
-
-						if (settings->base_yaw == 6)
-							GUI::Controls::Slider(XorStr(""), &settings->staticangle, -180, 180);
+					
+					switch (settings->base_yaw) {
+					case 1:
+						GUI::Controls::Slider(XorStr("offset#180offset"), &settings->OneEightyOffset, -180, 180);
+						break;
+					case 2:
+						GUI::Controls::Slider(XorStr("offset#180jitteroffset"), &settings->OneEightyJitterOffset, -180, 180);
+						GUI::Controls::Slider(XorStr("range#180jitterrange"), &settings->OneEightyJitterRange, 0, 180);
+						break;
+					case 3:
+						GUI::Controls::Slider(XorStr("range#jitterrange"), &settings->JitterRange, 0, 180); // this is ok
+						break;
+					case 4:
+						GUI::Controls::Slider(XorStr("range#spinrange"), &settings->RotationSpeed, -180, 180);
+						GUI::Controls::Slider(XorStr("speed#spinspeed"), &settings->RotationRange, 0, 20); // these are ok		
+						break;
+					case 5:
+						GUI::Controls::Slider(XorStr("range#randomrange"), &settings->RandomRange, 0, 180);
+						break;
+					case 6:
+						GUI::Controls::Slider(XorStr("offset#staticoffset"), &settings->StaticOffset, -180, 180);
+						break;
+					case 7:
+						GUI::Controls::Slider(XorStr("offset#180offset"), &settings->OneEightyZOffset, -180, 180);
+						break;
 					}
 					
 					GUI::Controls::Dropdown(XorStr("Yaw while Moving##aa"), { XorStr("Off"), XorStr("180 Jitter") }, &settings->moving_yaw);
@@ -311,9 +323,9 @@ namespace Menu {
 				}
 			}
 
-			if (GUI::Form::BeginTab(1, XorStr("B")) || GUI::ctx->setup) {
+			//if (GUI::Form::BeginTab(1, XorStr("B")) || GUI::ctx->setup) {
 
-			}
+			//}
 
 			if (GUI::Form::BeginTab(2, XorStr("C")) || GUI::ctx->setup) {
 

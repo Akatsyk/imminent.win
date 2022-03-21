@@ -98,92 +98,92 @@ namespace Hooked
 		return atof(Str2);
 	}
 
-	void RecvProxy_m_flSimulationTime(CRecvProxyData* pData, void* pStruct, void* pOut) 
-	{
-		g_Vars.globals.szLastHookCalled = XorStr("29");
+	//void RecvProxy_m_flSimulationTime(CRecvProxyData* pData, void* pStruct, void* pOut) 
+	//{
+	//	g_Vars.globals.szLastHookCalled = XorStr("29");
 
-		if (!pData || !pStruct || !pOut)
-			return;
+	//	if (!pData || !pStruct || !pOut)
+	//		return;
 
-		Interfaces::m_pFlSimulationTime->GetOriginalFunction()(pData, pStruct, pOut);
+	//	Interfaces::m_pFlSimulationTime->GetOriginalFunction()(pData, pStruct, pOut);
 
-		C_CSPlayer* pEntity = (C_CSPlayer*)pEntity;
-		float returnTime = pData->m_Value.m_Float;
+	//	C_CSPlayer* pEntity = (C_CSPlayer*)pEntity;
+	//	float returnTime = pData->m_Value.m_Float;
 
-		if (Interfaces::m_pEngine->IsInGame() && Interfaces::m_pEngine->IsConnected() && C_CSPlayer::GetLocalPlayer() && pEntity && pEntity->IsPlayer() && pEntity != C_CSPlayer::GetLocalPlayer())
-		{
-			auto lagData = Engine::LagCompensation::Get()->GetLagData(pEntity->EntIndex()).Xor();
-			if (lagData && lagData->m_History.size()) 
-			{
-				// just to make sure this variable isn't always set to true.
-				lagData->m_sProxyData.m_bRecievedSimTime = false;
+	//	if (Interfaces::m_pEngine->IsInGame() && Interfaces::m_pEngine->IsConnected() && C_CSPlayer::GetLocalPlayer() && pEntity && pEntity->IsPlayer() && pEntity != C_CSPlayer::GetLocalPlayer())
+	//	{
+	//		auto lagData = Engine::LagCompensation::Get()->GetLagData(pEntity->EntIndex()).Xor();
+	//		if (lagData && lagData->m_History.size()) 
+	//		{
+	//			// just to make sure this variable isn't always set to true.
+	//			lagData->m_sProxyData.m_bRecievedSimTime = false;
 
-				if (Interfaces::m_pGlobalVars->interval_per_tick == (1.0f / 64.0f))
-					returnTime = ExtractLostPrecisionForSimulationTime(returnTime);
+	//			if (Interfaces::m_pGlobalVars->interval_per_tick == (1.0f / 64.0f))
+	//				returnTime = ExtractLostPrecisionForSimulationTime(returnTime);
 
-				lagData->m_sProxyData.m_flSimulationTime = returnTime;
-				lagData->m_sProxyData.m_bRecievedSimTime = true;
-			}
-		}
-		
-		Interfaces::m_pFlSimulationTime->GetOriginalFunction()(pData, pStruct, pOut);
-	}
+	//			lagData->m_sProxyData.m_flSimulationTime = returnTime;
+	//			lagData->m_sProxyData.m_bRecievedSimTime = true;
+	//		}
+	//	}
+	//	
+	//	Interfaces::m_pFlSimulationTime->GetOriginalFunction()(pData, pStruct, pOut);
+	//}
 
-	void RecvProxy_m_flLowerBodyYawTarget(CRecvProxyData* pData, void* pStruct, void* pOut) 
-	{
-		g_Vars.globals.szLastHookCalled = XorStr("29");
+	//void RecvProxy_m_flLowerBodyYawTarget(CRecvProxyData* pData, void* pStruct, void* pOut) 
+	//{
+	//	g_Vars.globals.szLastHookCalled = XorStr("29");
 
-		if (!pData || !pStruct || !pOut)
-			return;
+	//	if (!pData || !pStruct || !pOut)
+	//		return;
 
-		Interfaces::m_pFlLowerBodyYaw->GetOriginalFunction()(pData, pStruct, pOut);
+	//	Interfaces::m_pFlLowerBodyYaw->GetOriginalFunction()(pData, pStruct, pOut);
 
-		C_CSPlayer* pEntity = (C_CSPlayer*)pEntity;
-		if (Interfaces::m_pEngine->IsInGame() && Interfaces::m_pEngine->IsConnected() && C_CSPlayer::GetLocalPlayer() && pEntity && pEntity->IsPlayer() && pEntity != C_CSPlayer::GetLocalPlayer())
-		{
-			auto lagData = Engine::LagCompensation::Get()->GetLagData(pEntity->EntIndex()).Xor();
-			if (lagData && lagData->m_History.size())
-			{
-				// just to make sure this variable isn't always set to true.
-				lagData->m_sProxyData.m_bRecievedLBY = false;
-				lagData->m_sProxyData.m_iTickRecievedLBYUpdate = Interfaces::m_pGlobalVars->tickcount;
-				lagData->m_sProxyData.m_flLowerBodyYaw = pData->m_Value.m_Float;
+	//	C_CSPlayer* pEntity = (C_CSPlayer*)pEntity;
+	//	if (Interfaces::m_pEngine->IsInGame() && Interfaces::m_pEngine->IsConnected() && C_CSPlayer::GetLocalPlayer() && pEntity && pEntity->IsPlayer() && pEntity != C_CSPlayer::GetLocalPlayer())
+	//	{
+	//		auto lagData = Engine::LagCompensation::Get()->GetLagData(pEntity->EntIndex()).Xor();
+	//		if (lagData && lagData->m_History.size())
+	//		{
+	//			// just to make sure this variable isn't always set to true.
+	//			lagData->m_sProxyData.m_bRecievedLBY = false;
+	//			lagData->m_sProxyData.m_iTickRecievedLBYUpdate = Interfaces::m_pGlobalVars->tickcount;
+	//			lagData->m_sProxyData.m_flLowerBodyYaw = pData->m_Value.m_Float;
 
-				auto animationRecord = Engine::AnimationSystem::Get()->GetAnimationData(pEntity->EntIndex())->m_AnimationRecord;
-				if (!animationRecord.empty() && animationRecord.size() >= 2 && animationRecord.front().m_flLowerBodyYawTarget != lagData->m_sProxyData.m_flLowerBodyYaw)
-					lagData->m_sProxyData.m_bLBYUpdated = true;
+	//			auto animationRecord = Engine::AnimationSystem::Get()->GetAnimationData(pEntity->EntIndex())->m_AnimationRecord;
+	//			if (!animationRecord.empty() && animationRecord.size() >= 2 && animationRecord.front().m_flLowerBodyYawTarget != lagData->m_sProxyData.m_flLowerBodyYaw)
+	//				lagData->m_sProxyData.m_bLBYUpdated = true;
 
-				lagData->m_sProxyData.m_bRecievedLBY = true;
-			}
-		}
+	//			lagData->m_sProxyData.m_bRecievedLBY = true;
+	//		}
+	//	}
 
-		Interfaces::m_pFlLowerBodyYaw->GetOriginalFunction()(pData, pStruct, pOut);
-	}
+	//	Interfaces::m_pFlLowerBodyYaw->GetOriginalFunction()(pData, pStruct, pOut);
+	//}
 
-	void RecvProxy_m_angEyeAnglesY(CRecvProxyData* pData, void* pStruct, void* pOut) 
-	{
-		g_Vars.globals.szLastHookCalled = XorStr("29");
+	//void RecvProxy_m_angEyeAnglesY(CRecvProxyData* pData, void* pStruct, void* pOut) 
+	//{
+	//	g_Vars.globals.szLastHookCalled = XorStr("29");
 
-		if (!pData || !pStruct || !pOut)
-			return;
+	//	if (!pData || !pStruct || !pOut)
+	//		return;
 
-		Interfaces::m_pEyeAnglesY->GetOriginalFunction()(pData, pStruct, pOut);
+	//	Interfaces::m_pEyeAnglesY->GetOriginalFunction()(pData, pStruct, pOut);
 
-		C_CSPlayer* pEntity = (C_CSPlayer*)pEntity;
-		if (Interfaces::m_pEngine->IsInGame() && Interfaces::m_pEngine->IsConnected() && C_CSPlayer::GetLocalPlayer() && pEntity && pEntity->IsPlayer() && pEntity != C_CSPlayer::GetLocalPlayer())
-		{
-			auto lagData = Engine::LagCompensation::Get()->GetLagData(pEntity->EntIndex()).Xor();
-			if (lagData && lagData->m_History.size())
-			{
-				// just to make sure this variable isn't always set to true.
-				lagData->m_sProxyData.m_bRecievedYawAngle = false;
-				lagData->m_sProxyData.m_flEyeYawAngle = pData->m_Value.m_Float;
-				lagData->m_sProxyData.m_bRecievedYawAngle = true;
-			}
-		}
+	//	C_CSPlayer* pEntity = (C_CSPlayer*)pEntity;
+	//	if (Interfaces::m_pEngine->IsInGame() && Interfaces::m_pEngine->IsConnected() && C_CSPlayer::GetLocalPlayer() && pEntity && pEntity->IsPlayer() && pEntity != C_CSPlayer::GetLocalPlayer())
+	//	{
+	//		auto lagData = Engine::LagCompensation::Get()->GetLagData(pEntity->EntIndex()).Xor();
+	//		if (lagData && lagData->m_History.size())
+	//		{
+	//			// just to make sure this variable isn't always set to true.
+	//			lagData->m_sProxyData.m_bRecievedYawAngle = false;
+	//			lagData->m_sProxyData.m_flEyeYawAngle = pData->m_Value.m_Float;
+	//			lagData->m_sProxyData.m_bRecievedYawAngle = true;
+	//		}
+	//	}
 
-		Interfaces::m_pEyeAnglesY->GetOriginalFunction()(pData, pStruct, pOut);
-	}
+	//	Interfaces::m_pEyeAnglesY->GetOriginalFunction()(pData, pStruct, pOut);
+	//}
 
 	void m_bClientSideAnimation( CRecvProxyData* pData, void* pStruct, void* pOut ) 
 	{

@@ -903,7 +903,7 @@ namespace Interfaces
 		if (!Interfaces::m_pEngine->IsInGame())
 			return;
 
-		// check if we have a local player and he is alive.
+		// check if we have a local player and he is alive.one
 		bool alive = !local->IsDead();
 
 		bool bThirdPerson = false;

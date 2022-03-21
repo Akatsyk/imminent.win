@@ -24,7 +24,7 @@ int GetFPS()
 	auto now = high_resolution_clock::now();
 	static auto last = high_resolution_clock::now();
 	count++;
-
+	 
 	if (duration_cast<milliseconds>(now - last).count() > 1000) {
 		fps = count;
 		count = 0;
@@ -44,6 +44,7 @@ namespace Interfaces
 	private:
 		virtual float GetAntiAimX(Encrypted_t<CVariables::ANTIAIM_STATE> settings);
 		virtual float GetAntiAimY(Encrypted_t<CVariables::ANTIAIM_STATE> settings, Encrypted_t<CUserCmd> cmd);
+		virtual float BaseAngle();
 
 		virtual void Distort(Encrypted_t<CUserCmd> cmd, bool fakeYaw);
 
@@ -294,11 +295,11 @@ namespace Interfaces
 			// fake yaw.
 			switch (settings->yaw) {
 			case 1: // dynamic
-				bSwitch ? cmd->viewangles.y += 90.f : cmd->viewangles.y -= 90.f;
+				bSwitch ? cmd->viewangles.y += 87.f : cmd->viewangles.y -= 92.f;
 				bSwitch = !bSwitch;
 				break;
 			case 2: // sway 
-				bNegative ? cmd->viewangles.y += 110.f : cmd->viewangles.y -= 110.f;
+				bNegative ? cmd->viewangles.y += 117.f : cmd->viewangles.y -= 107.f;
 				break;
 			case 3: // static		
 				bSwap ? cmd->viewangles.y += g_Vars.antiaim.break_lby : cmd->viewangles.y -= g_Vars.antiaim.break_lby;
@@ -319,14 +320,14 @@ namespace Interfaces
 		{
 			if (!Interfaces::m_pClientState->m_nChokedCommands()
 				&& LocalPlayer->m_fFlags() & FL_ONGROUND && g_Vars.globals.m_bUpdate
-				&& Interfaces::m_pGlobalVars->curtime >= g_Vars.globals.m_flBodyPred - 0.1f) {
+				&& Interfaces::m_pGlobalVars->curtime >= g_Vars.globals.m_flBodyPred - 0.152f) {
 				switch (settings->yaw) {
 				case 1: // dynamic
-					bSwitch ? cmd->viewangles.y += 90.f : cmd->viewangles.y -= 90.f;
+					bSwitch ? cmd->viewangles.y += 87.f : cmd->viewangles.y -= 92.f;
 					bSwitch = !bSwitch;
 					break;
 				case 2: // sway 
-					bNegative ? cmd->viewangles.y += 110.f : cmd->viewangles.y -= 110.f;
+					bNegative ? cmd->viewangles.y += 117.f : cmd->viewangles.y -= 107.f;
 					break;
 				case 3: // static		
 					bSwap ? cmd->viewangles.y += g_Vars.antiaim.break_lby : cmd->viewangles.y -= g_Vars.antiaim.break_lby;
@@ -341,14 +342,14 @@ namespace Interfaces
 
 			if (!Interfaces::m_pClientState->m_nChokedCommands()
 				&& LocalPlayer->m_fFlags() & FL_ONGROUND && g_Vars.globals.m_bUpdate
-				&& Interfaces::m_pGlobalVars->curtime >= g_Vars.globals.m_flBodyPred + 0.1f) {
+				&& Interfaces::m_pGlobalVars->curtime >= g_Vars.globals.m_flBodyPred + 0.152f) {
 				switch (settings->yaw) {
 				case 1: // dynamic
-					bSwitch ? cmd->viewangles.y += 90.f : cmd->viewangles.y -= 90.f;
+					bSwitch ? cmd->viewangles.y += 87.f : cmd->viewangles.y -= 92.f;
 					bSwitch = !bSwitch;
 					break;
 				case 2: // sway 
-					bNegative ? cmd->viewangles.y += 110.f : cmd->viewangles.y -= 110.f;
+					bNegative ? cmd->viewangles.y += 117.f : cmd->viewangles.y -= 107.f;
 					break;
 				case 3: // static		
 					bSwap ? cmd->viewangles.y += g_Vars.antiaim.break_lby : cmd->viewangles.y -= g_Vars.antiaim.break_lby;
@@ -569,216 +570,90 @@ namespace Interfaces
 		return false;
 	}
 
+	float C_AntiAimbot::BaseAngle() {
+		bool bUsingManualAA = g_Vars.globals.manual_aa != -1;
+
+		if (bUsingManualAA) {
+			switch (g_Vars.globals.manual_aa) {
+			case 0:
+				return 90.f;
+				break;
+			case 1:
+				return 180.f;
+				break;
+			case 2:
+				return -90.f;
+				break;
+			}
+		}
+		else if (g_Vars.antiaim.stahlhelm) {
+		// add edge aa shit here
+		}
+		else {
+			auto &settings = g_Vars.antiaim_stand;
+
+			switch (g_Vars.antiaim_stand.base_yaw) {
+			case 1:
+				return settings.OneEightyOffset;
+				break;
+
+			case 2:
+				return settings.OneEightyJitterOffset;
+				break;
+
+			case 5:
+				return settings.RandomRange;
+				break;
+
+			case 6:
+				return 180;
+				break;
+
+			case 7:
+				return settings.OneEightyZOffset;
+				break;
+			}
+		}
+	}
+
 	float C_AntiAimbot::GetAntiAimY(Encrypted_t<CVariables::ANTIAIM_STATE> settings, Encrypted_t<CUserCmd> cmd) {
 		auto local = C_CSPlayer::GetLocalPlayer();
 		if (!local || local->IsDead())
 			return FLT_MAX;
 
-		float flViewAngle = cmd->viewangles.y;
-		auto GetTargetYaw = [local, flViewAngle]() -> float
-		{
-			float_t flBestDistance = FLT_MAX;
-
-			C_CSPlayer* pFinalPlayer = nullptr;
-			for (int32_t i = 1; i < 65; i++)
-			{
-				C_CSPlayer* pPlayer = C_CSPlayer::GetPlayerByIndex(i);
-				if (!pPlayer || !pPlayer->IsPlayer() || pPlayer->IsDead() || pPlayer->m_iTeamNum() == local->m_iTeamNum() || pPlayer->IsDormant())
-					continue;
-
-				if (pPlayer->m_fFlags() & FL_FROZEN)
-					continue;
-
-				float_t flDistanceToPlayer = local->m_vecOrigin().Distance(pPlayer->m_vecOrigin());
-				if (flDistanceToPlayer > flBestDistance)
-					continue;
-
-				if (flDistanceToPlayer > 1250.0f)
-					continue;
-
-				flBestDistance = flDistanceToPlayer;
-				pFinalPlayer = pPlayer;
-			}
-
-			if (!pFinalPlayer)
-				return flViewAngle + 180.0f;
-
-			return Math::CalcAngle(local->GetAbsOrigin() + local->m_vecViewOffset(), pFinalPlayer->GetAbsOrigin()).yaw + 180.0f;
-		};
-
-		float flRetValue = (settings->at_targets ? GetTargetYaw() : flViewAngle) + 180.f;
-
-		bool bUsingManualAA = g_Vars.globals.manual_aa != -1;
-		if (bUsingManualAA) {
-			switch (g_Vars.globals.manual_aa) {
-			case 0:
-				flRetValue = (settings->at_targets ? GetTargetYaw() : flViewAngle) + 90.f;
-				break;
-			case 1:
-				flRetValue = (settings->at_targets ? GetTargetYaw() : flViewAngle) + 180.f;
-				break;
-			case 2:
-				flRetValue = (settings->at_targets ? GetTargetYaw() : flViewAngle) - 90.f;
-				break;
-			}
-		}
-
-		bool bStahlhelmEnabled = false, bFreestandingEnabled = false;
-
-		QAngle returnAngle;
-		if (g_Vars.antiaim.stahlhelm && DoEdgeAntiAim(local, returnAngle) && !bUsingManualAA)
-		{
-			bStahlhelmEnabled = true;
-			flRetValue = returnAngle.y;
-		}
-
-		// this is inside of an else because iron helmet takes priority over freestanding.
-		else
-		{
-			bStahlhelmEnabled = false;
-
-			if (local->m_vecVelocity().Length() > 3.f && g_Vars.antiaim.freestand_move && !bUsingManualAA)
-			{
-				const C_AntiAimbot::Directions Direction = HandleDirection(cmd);
-				switch (Direction) {
-				case Directions::YAW_BACK:
-					// backwards yaw.
-					bFreestandingEnabled = true;
-					flRetValue = (settings->at_targets ? GetTargetYaw() : flViewAngle) + 180.f;
-					break;
-				case Directions::YAW_LEFT:
-					// left yaw.
-					bFreestandingEnabled = true;
-					flRetValue = (settings->at_targets ? GetTargetYaw() : flViewAngle) + 90.f;
-					break;
-				case Directions::YAW_RIGHT:
-					// right yaw.
-					bFreestandingEnabled = true;
-					flRetValue = (settings->at_targets ? GetTargetYaw() : flViewAngle) - 90.f;
-					break;
-				case Directions::YAW_NONE:
-					// break because we already have an angle!.
-					bFreestandingEnabled = false;
-					break;
-				}
-			}
-
-			if (local->m_vecVelocity().Length() < 3.f && g_Vars.antiaim.freestand_stand && !bUsingManualAA)
-			{
-				const C_AntiAimbot::Directions Direction = HandleDirection(cmd);
-				switch (Direction) {
-				case Directions::YAW_BACK:
-					// backwards yaw.
-					bFreestandingEnabled = true;
-					flRetValue = (settings->at_targets ? GetTargetYaw() : flViewAngle) + 180.f;
-					break;
-				case Directions::YAW_LEFT:
-					// left yaw.
-					bFreestandingEnabled = true;
-					flRetValue = (settings->at_targets ? GetTargetYaw() : flViewAngle) + 90.f;
-					break;
-				case Directions::YAW_RIGHT:
-					// right yaw.
-					bFreestandingEnabled = true;
-					flRetValue = (settings->at_targets ? GetTargetYaw() : flViewAngle) - 90.f;
-					break;
-				case Directions::YAW_NONE:
-					// break because we already have an angle!.
-					bFreestandingEnabled = false;
-					break;
-				}
-			}
-		}
+		float flBaseAngle = BaseAngle();
+		float flReturnAngle = flBaseAngle;
 
 		static int Ticks = 0;
-		if (settings->moving_yaw > 0 && !bStahlhelmEnabled && !bFreestandingEnabled && !bUsingManualAA)
-		{
-			if (local->m_vecVelocity().Length() > 3.f)
-			{
-				flRetValue = (settings->at_targets ? GetTargetYaw() : flViewAngle) + ((rand() % 15) - (15 * 0.5f));
-			}
-			else
-			{
-				std::uniform_int_distribution random(-settings->realjitterrange, settings->realjitterrange);
-				std::uniform_int_distribution randomspic(-settings->randomrange, settings->randomrange);
 
-				switch (settings->base_yaw)
-				{
-				case 1: // backwards.
-					flRetValue = (settings->at_targets ? GetTargetYaw() : flViewAngle) + 180.f;
-					break;
-				case 2: // 180 jitter
-					flRetValue = (settings->at_targets ? GetTargetYaw() : flViewAngle) + ((rand() % 15) - (15 * 0.5f));
-					break;
-				case 3: // jitter
-					flRetValue = Math::AngleNormalize((settings->at_targets ? GetTargetYaw() : flViewAngle) + random(generator));
-					break;
-				case 4: // spin
-					flRetValue = std::fmod(Interfaces::m_pGlobalVars->curtime * (settings->realrotationspeed * 100.f), settings->realrotationrange * 360.f); break;
-					break;
-				case 5: // random
-					flRetValue = Math::AngleNormalize((settings->at_targets ? GetTargetYaw() : flViewAngle) + randomspic(generator));
-					break;
-				case 6: // static
-					flRetValue = Math::AngleNormalize((settings->at_targets ? GetTargetYaw() : flViewAngle) + settings->staticangle);
-					break;
-				case 7: // 180z
-					flRetValue -= Ticks;
-					Ticks += 2;
+		std::uniform_int_distribution OneEightyJitterRandom(-settings->OneEightyJitterRange, settings->OneEightyJitterRange);
+		std::uniform_int_distribution JitterRandom(-settings->JitterRange, settings->JitterRange);
+		std::uniform_int_distribution Random(-settings->RandomRange, settings->RandomRange);
 
-					if (Ticks > 240)
-						Ticks = 120;
-					break;
-				default: [[fallthrough]];
-				}
-			}
-		}
-		else
-		{
-			std::uniform_int_distribution randomnigger(-settings->realjitterrange, settings->realjitterrange);
-			std::uniform_int_distribution randomcockhead(-settings->randomrange, settings->randomrange);
+		switch (settings->base_yaw) {
+		case 2:
+			flReturnAngle += Math::AngleNormalize(OneEightyJitterRandom(generator));
+			break;
+		case 3:
+			flReturnAngle += Math::AngleNormalize(JitterRandom(generator));
+			break;
+		case 4:
+			flReturnAngle = std::fmod(Interfaces::m_pGlobalVars->curtime * (settings->RotationSpeed * 100.f), settings->RotationRange * 360.f);
+			break;
+		case 5:
+			flReturnAngle += Math::AngleNormalize(Random(generator));
+			break;
+		case 7:
+			flReturnAngle -= Ticks;
 
-			switch (settings->base_yaw)
-			{
-			case 1: // backwards.
-				flRetValue = (settings->at_targets ? GetTargetYaw() : flViewAngle) + 180.f;
-				break;
-			case 2: // 180 jitter
-				flRetValue = (settings->at_targets ? GetTargetYaw() : flViewAngle) + ((rand() % 15) - (15 * 0.5f));
-				break;
-			case 3: // jitter
-				flRetValue = Math::AngleNormalize((settings->at_targets ? GetTargetYaw() : flViewAngle) + randomnigger(generator));
-				break;
-			case 4: // spin
-				flRetValue = std::fmod(Interfaces::m_pGlobalVars->curtime * (settings->realrotationspeed * 100.f), settings->realrotationrange * 360.f); break;
-				break;
-			case 5: // random
-				flRetValue = Math::AngleNormalize((settings->at_targets ? GetTargetYaw() : flViewAngle) + randomcockhead(generator));
-				break;
-			case 6: // static
-				flRetValue = Math::AngleNormalize((settings->at_targets ? GetTargetYaw() : flViewAngle) + settings->staticangle);
-				break;
-			case 7: // 180z
-				flRetValue -= Ticks;
-				Ticks += 2;
+			Ticks += 2;
 
-				if (Ticks > 240)
-					Ticks = 120;
-				break;
-			default: [[fallthrough]];
-			}
+			if (Ticks > 240)
+				Ticks = 120;
+			break;
 		}
 
-		static int iUpdates;
-		if (iUpdates > pow(10, 10))
-			iUpdates = 1;
-
-		if (!g_Vars.globals.m_bGround) {
-			flRetValue = (settings->at_targets ? GetTargetYaw() : flViewAngle) + (iUpdates % 2 ? -155.f : 155.f);
-			++iUpdates;
-		}
-
-		return flRetValue;
+		return flReturnAngle;
 	}
 
 	void C_AntiAimbot::Distort(Encrypted_t<CUserCmd> cmd, bool usingFakeYaw) {

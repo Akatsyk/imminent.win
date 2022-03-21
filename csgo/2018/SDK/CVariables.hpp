@@ -794,9 +794,25 @@ public:
 	config_option(int, pitch, 0);
 	config_option(int, yaw, 0);
 	config_option(int, moving_yaw, 0);
+
+	config_option(int, OneEightyOffset, 0);
+
+	config_option(int, JitterRange, 0);
+
+	config_option(int, OneEightyJitterOffset, 0);
+	config_option(int, OneEightyJitterRange, 0);
+
+	config_option(int, RotationSpeed, 0);
+	config_option(int, RotationRange, 0);
+
+	config_option(int, RandomRange, 0);
+
+	config_option(int, StaticOffset, 0);
+
+	config_option(int, OneEightyZOffset, 0);
+
 	config_option(int, realjitterrange, 0);
-	config_option(float, realrotationspeed, 0.f);
-	config_option(float, realrotationrange, 0.f);
+
 	config_option(float, staticangle, 0.f);
 	config_option(int, randomrange, 0);
 	config_option(int, twist, 0);
