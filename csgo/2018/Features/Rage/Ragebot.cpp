@@ -1674,7 +1674,7 @@ namespace Interfaces
 								msg << XorStr("dmg: ") << int(bestPoint->damage) << XorStr(" | ");
 								msg << XorStr("hitgroup: ") << TranslateHitbox(bestPoint->hitboxIndex).c_str() << XorStr("(") << int(bestPoint->pointscale * 100.f) << XorStr("%%%%)") << XorStr(" | ");
 								msg << XorStr("flick: ") << int(bestPoint->target->record->m_iResolverMode == 6) << XorStr(" | ");
-								msg << XorStr("bt: ") << TIME_TO_TICKS(m_lag_data->m_History.front().m_flSimulationTime - bestPoint->target->record->m_flSimulationTime) << XorStr(" | ");
+								msg << XorStr("bt: ") << Interfaces::m_pGlobalVars->tickcount - TIME_TO_TICKS(bestPoint->target->record->m_flSimulationTime) << XorStr(" | ");
 								msg << XorStr("sent: ") << int(*m_rage_data->m_pSendPacket) << XorStr(" | ");
 								msg << XorStr("hc: ") << int(bestPoint->hitchance) << XorStr(" | ");
 								msg << XorStr("miss: ") << m_lag_data->m_iMissedShots << XorStr(":") << m_lag_data->m_iMissedShotsLBY << XorStr(":") << bestPoint->target->record->m_iResolverMode << XorStr(" | ");

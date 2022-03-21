@@ -303,6 +303,8 @@ namespace Menu {
 
 					GUI::Controls::Checkbox(XorStr("Funny Mode"), &g_Vars.antiaim.funnymode);
 
+					GUI::Controls::Hotkey(XorStr("Funny Walk#Key"), &g_Vars.misc.funnywalk);
+
 					GUI::Controls::Checkbox(XorStr("Slow motion"), &g_Vars.misc.slow_walk);
 					GUI::Controls::Hotkey(XorStr("Slow motion key#Key"), &g_Vars.misc.slow_walk_bind);
 					GUI::Controls::Slider(XorStr("Slow motion speed"), &g_Vars.misc.slow_walk_speed, 4, 16);

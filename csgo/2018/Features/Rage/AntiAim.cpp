@@ -424,6 +424,10 @@ namespace Interfaces
 		if (!animState)
 			return FLT_MAX;
 
+		if (g_Vars.antiaim.stahlhelm) {
+			// p100 anti aim exploit
+		}
+
 		switch (settings->pitch) {
 		case 1: // down
 			return 89.f;
@@ -576,18 +580,18 @@ namespace Interfaces
 		if (bUsingManualAA) {
 			switch (g_Vars.globals.manual_aa) {
 			case 0:
-				return 90.f;
-				break;
-			case 1:
 				return 180.f;
 				break;
-			case 2:
+			case 1:
 				return -90.f;
+				break;
+			case 2:
+				return 90.f;
 				break;
 			}
 		}
 		else if (g_Vars.antiaim.stahlhelm) {
-		// add edge aa shit here
+			// p100 anti aim exploit
 		}
 		else {
 			auto &settings = g_Vars.antiaim_stand;
@@ -638,7 +642,7 @@ namespace Interfaces
 			flReturnAngle += Math::AngleNormalize(JitterRandom(generator));
 			break;
 		case 4:
-			flReturnAngle = std::fmod(Interfaces::m_pGlobalVars->curtime * (settings->RotationSpeed * 100.f), settings->RotationRange * 360.f);
+			flReturnAngle = std::fmod(Interfaces::m_pGlobalVars->curtime * (settings->RotationSpeed * 10.f), settings->RotationRange * 360.f);
 			break;
 		case 5:
 			flReturnAngle += Math::AngleNormalize(Random(generator));

@@ -405,6 +405,20 @@ namespace Interfaces
 						}
 					}
 				}
+				if (g_Vars.misc.funnywalk.enabled) {
+					auto local = C_CSPlayer::GetLocalPlayer();
+
+					if (cmd->command_number & 1)
+						cmd->forwardmove -= (local->m_vecViewOffset().z < 64.f ? 4.941177f : 1.01f);
+					else
+						cmd->forwardmove += (local->m_vecViewOffset().z < 64.f ? 4.941177f : 1.01f);
+
+					float flMaxSpeed = m_movement_data->m_pLocal->m_bIsScoped() > 0 ? weaponInfo.Xor()->m_flMaxSpeed2 : weaponInfo.Xor()->m_flMaxSpeed;
+					float flDesiredSpeed = (flMaxSpeed * 0.33000001);
+
+					SlowWalk(flDesiredSpeed);
+
+				}
 			}
 		}
 
