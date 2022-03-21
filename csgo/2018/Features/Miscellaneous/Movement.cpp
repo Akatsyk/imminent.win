@@ -416,7 +416,7 @@ namespace Interfaces
 					float flMaxSpeed = m_movement_data->m_pLocal->m_bIsScoped() > 0 ? weaponInfo.Xor()->m_flMaxSpeed2 : weaponInfo.Xor()->m_flMaxSpeed;
 					float flDesiredSpeed = (flMaxSpeed * 0.33000001);
 
-					SlowWalk(flDesiredSpeed);
+					//SlowWalk(flDesiredSpeed);
 
 				}
 			}
