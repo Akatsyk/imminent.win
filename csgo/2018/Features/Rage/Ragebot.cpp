@@ -1961,11 +1961,9 @@ namespace Interfaces
 			bool bDelayLimb = false;
 			auto bIsLimb = hitbox->group == Hitgroup_LeftArm || hitbox->group == Hitgroup_RightArm || hitbox->group == Hitgroup_RightLeg || hitbox->group == Hitgroup_LeftLeg;
 			if (bIsLimb) {
-				// we're not moving, let's delay the limb shot
 				if (m_rage_data->m_pLocal->m_vecVelocity().Length2D() < 3.25f) {
 					bDelayLimb = true;
 				}
-				// we're moving, let's not shoot at limbs at all
 				else {
 					continue;
 				}

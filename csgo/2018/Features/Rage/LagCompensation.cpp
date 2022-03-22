@@ -65,6 +65,7 @@ namespace Engine
 
 		C_LagCompensation() : lagData(&_lagcomp_data) { };
 		virtual ~C_LagCompensation() { };
+
 	private:
 		virtual void SetupLerpTime();
 		Encrypted_t<LagCompData> lagData;

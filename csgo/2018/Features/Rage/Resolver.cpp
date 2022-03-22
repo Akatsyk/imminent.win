@@ -181,6 +181,9 @@ namespace Engine {
 
 		// improved this check & commented it out for when i fix it;
 		// i was thinking this could be the reason we dump sometimes so i commented it out.
+		// 
+		// tuff, removed everything for the code below :)
+		// 
 		//if (g_ResolverData[player->EntIndex()].gotserverside) 
 		//{
 		//	record->m_iResolverMode = EResolverModes::RESOLVE_STAND1;
@@ -263,6 +266,9 @@ namespace Engine {
 			// set this to true so that way it pushes back a record of this.
 			//record->m_bResolved = true;
 
+			// predict the first flick they have to do after they stop moving
+			g_ResolverData[player->EntIndex()].flNextBodyUpdate = player->m_flAnimationTime() + 0.22f;
+
 			// store the data about the moving player, we need to because it contains crucial info
 			// that we will have to later on use in our resolver.
 			g_ResolverData[player->EntIndex()].m_sMoveData.m_flAnimTime = player->m_flAnimationTime();
@@ -333,22 +339,13 @@ namespace Engine {
 		if (data.m_bCollectedValidMoveData && IsLastMoveValid(record, g_ResolverData[player->EntIndex()].m_sMoveData.m_flLowerBodyYawTarget) && !bInvalidatedLastMovingLBY && nMisses < 1) {
 			g_ResolverData[player->EntIndex()].m_sResolverMode = XorStr("LM");
 			g_ResolverData[player->EntIndex()].m_flFinalResolverYaw = g_ResolverData[player->EntIndex()].m_sMoveData.m_flLowerBodyYawTarget;
-			record->m_bResolved = true;
-			return;
-		}
-
-		// no lby modulation; force this bitch
-		else if (!bModulatingLBY)
-		{
-			g_ResolverData[player->EntIndex()].m_sResolverMode = XorStr("LBY");
-			g_ResolverData[player->EntIndex()].m_flFinalResolverYaw = record->m_flLowerBodyYawTarget;
-			record->m_bResolved = true;
 			return;
 		}
 
 		// distortion resolver; or at least hopefully a distortion resolver.
 		// the last move check possibly might not needed
 		// removed the last moving check as distortion should invalidate last moving as it updates the lby.
+		/*
 		else if (bDetectingDistortion ) //&& g_Vars.rage.distortion_resolver.enabled
 		{
 			g_ResolverData[player->EntIndex()].m_sResolverMode = XorStr("D");
@@ -363,7 +360,7 @@ namespace Engine {
 				break;
 			}
 			}
-		}
+		}*/
 
 		// only force this if we don't have a valid last move or if our lby is being modulated.
 		// commented for now.
@@ -547,6 +544,12 @@ namespace Engine {
 		m_flLastDelta = m_flDelta;
 	}
 
+	void CResolver::OnBodyUpdate(C_CSPlayer* player, float value) {
+		// set data.
+		Engine::g_ResolverData[player->EntIndex()].m_old_body = Engine::g_ResolverData[player->EntIndex()].m_body;
+		Engine::g_ResolverData[player->EntIndex()].m_body = value;
+	}
+
 	void CResolver::PredictBodyUpdates(C_CSPlayer* player, C_AnimationRecord* record, C_AnimationRecord* prev) {
 		auto local = C_CSPlayer::GetLocalPlayer();
 		if (!local)
@@ -590,45 +593,36 @@ namespace Engine {
 			return;
 		}
 
-		// inform esp that we're about to be the prediction process
-		Engine::g_ResolverData[player->EntIndex()].m_bPredictingUpdates = true;
+		if (Engine::g_ResolverData[player->EntIndex()].m_body != Engine::g_ResolverData[player->EntIndex()].m_old_body) {
+			record->m_angEyeAngles.y = player->m_angEyeAngles().y = Engine::g_ResolverData[player->EntIndex()].m_body;
 
-		//check if the player is walking
-		// no need for the extra fakewalk check since we null velocity when they're fakewalking anyway
-		if (record->m_vecAnimationVelocity.Length2D() > 0.1f) {
-			g_ResolverData[player->EntIndex()].m_sResolverMode = XorStr("F");
+			printf("[lby update detected]\n", player->m_angEyeAngles().y);
 
-			// predict the first flick they have to do after they stop moving
-			Engine::g_ResolverData[player->EntIndex()].m_flNextBodyUpdate = player->m_flAnimationTime() + 0.22f;
-
-			record->m_bResolved = true;
-			bLBYIsFlicking = true;
-
-			// since we are still not in the prediction process, inform the cheat that we arent predicting yet
-			// this is only really used to determine if we should draw the lby timer bar on esp, no other real purpose
-			Engine::g_ResolverData[player->EntIndex()].m_bPredictingUpdates = false;
+			g_ResolverData[player->EntIndex()].flNextBodyUpdate = player->m_flAnimationTime() + 1.1f;
 		}
 
 		// lby updated on this tick
-		else if ((Engine::g_ResolverData[player->EntIndex()].m_flOldLowerBodyYawTarget && record->m_flLowerBodyYawTarget) || player->m_flAnimationTime() >= Engine::g_ResolverData[player->EntIndex()].m_flNextBodyUpdate) {
-			// inform the cheat of the resolver method
-			record->m_iResolverMode = EResolverModes::RESOLVE_PRED;
+		//if ( player->m_flAnimationTime() > g_ResolverData[player->EntIndex()].flNextBodyUpdate ) {
+		//	// inform the cheat of the resolver method
+		//	record->m_iResolverMode = EResolverModes::RESOLVE_PRED;
 
-			g_ResolverData[player->EntIndex()].m_sResolverMode = XorStr("F");
+		//	g_ResolverData[player->EntIndex()].m_sResolverMode = XorStr("F");
 
-			// predict the next body update
-			Engine::g_ResolverData[player->EntIndex()].m_flNextBodyUpdate = player->m_flAnimationTime() + 1.1f;
+		//	// predict the next body update
+		//	g_ResolverData[player->EntIndex()].flNextBodyUpdate = player->m_flAnimationTime() + 1.1f;
 
-			// set eyeangles to lby
-			record->m_angEyeAngles.y = player->m_angEyeAngles().y = record->m_flLowerBodyYawTarget;
+		//	// set eyeangles to lby
+		//	record->m_angEyeAngles.y = player->m_angEyeAngles().y = record->m_flLowerBodyYawTarget;
 
-			// this is also only really used for esp flag
-			record->m_bResolved = true;
-			bLBYIsFlicking = true;
+		//	printf("[lby update detected]\n", player->m_angEyeAngles().y);
 
-			// we're now in the prediction stage.
-			Engine::g_ResolverData[player->EntIndex()].m_bPredictingUpdates = true;
-		}
+		//	// this is also only really used for esp flag
+		//	record->m_bResolved = true;
+		//	bLBYIsFlicking = true;
+
+		//	// we're now in the prediction stage.
+		//	Engine::g_ResolverData[player->EntIndex()].m_bPredictingUpdates = true;
+		//}
 	}
 }
 

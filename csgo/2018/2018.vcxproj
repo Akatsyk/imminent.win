@@ -355,6 +355,7 @@
     <ClInclude Include="Renderer\Textures\weaponicons.h" />
     <ClInclude Include="Renderer\Wrapper\font\font.h" />
     <ClInclude Include="Renderer\Wrapper\sprite\sprite.h" />
+    <ClInclude Include="SDK\Classes\Header.hpp" />
     <ClInclude Include="SDK\Classes\IInputSystem.hpp" />
     <ClInclude Include="SDK\Classes\INetworkStringTable.h" />
     <ClInclude Include="SDK\Utils\auto.hpp" />

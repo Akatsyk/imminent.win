@@ -1651,12 +1651,28 @@ void CEsp::DrawInfo(C_CSPlayer* player, BBox_t bbox, player_info_t player_info) 
 
 	auto anim_data = Engine::AnimationSystem::Get()->GetAnimationData(player->m_entIndex);
 	auto lag_data = Engine::LagCompensation::Get()->GetLagData(player->m_entIndex);
+	auto resolver_data = Engine::g_ResolverData[player->EntIndex()];
 	if (anim_data && lag_data.IsValid() && g_Vars.esp.draw_resolver) {
 		if (!anim_data->m_AnimationRecord.empty()) {
 			auto current = &anim_data->m_AnimationRecord.front();
 			if (current) {
 				//if (current->m_bResolved)
 					g_Vars.globals.m_vecTextInfo[player->EntIndex()].emplace_back(FloatColor(0, 255, 0, (int)(180 * m_flAlpha[player->EntIndex()])), Engine::g_ResolverData[player->EntIndex()].m_sResolverMode);
+
+					std::stringstream msg;
+
+					float flTimeTillFlick = resolver_data.flNextBodyUpdate - player->m_flAnimationTime();
+					Math::NormalizeFloat(flTimeTillFlick);
+
+					if (flTimeTillFlick < 2.f &&
+				        flTimeTillFlick > 0.0000001f) {
+						msg << XorStr("Flick: ") << float(flTimeTillFlick);
+					}
+					else {
+						msg << XorStr("Flick: ?");
+					}
+
+					g_Vars.globals.m_vecTextInfo[player->EntIndex()].emplace_back(FloatColor(0, 255, 0, (int)(180 * m_flAlpha[player->EntIndex()])), msg.str());
 				//else
 				//	g_Vars.globals.m_vecTextInfo[player->EntIndex()].emplace_back(FloatColor(255, 0, 0, (int)(180 * m_flAlpha[player->EntIndex()])), XorStr("R"));
 				

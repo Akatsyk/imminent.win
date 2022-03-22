@@ -225,47 +225,36 @@ namespace Menu {
 					GUI::Controls::Dropdown(XorStr("Yaw"), { XorStr("Off"), XorStr("180"), XorStr("180 Jitter"), XorStr("Jitter"), XorStr("Spin"), XorStr("Random"), XorStr("Static"), XorStr("180z") }, &settings->base_yaw);
 					
 					switch (settings->base_yaw) {
-					case 1:
-						GUI::Controls::Slider(XorStr("offset#180offset"), &settings->OneEightyOffset, -180, 180);
-						break;
 					case 2:
-						GUI::Controls::Slider(XorStr("offset#180jitteroffset"), &settings->OneEightyJitterOffset, -180, 180);
 						GUI::Controls::Slider(XorStr("range#180jitterrange"), &settings->OneEightyJitterRange, 0, 180);
 						break;
 					case 3:
-						GUI::Controls::Slider(XorStr("range#jitterrange"), &settings->JitterRange, 0, 180); // this is ok
+						GUI::Controls::Slider(XorStr("range#jitterrange"), &settings->JitterRange, 0, 180);
 						break;
 					case 4:
 						GUI::Controls::Slider(XorStr("range#spinrange"), &settings->RotationSpeed, -180, 180);
-						GUI::Controls::Slider(XorStr("speed#spinspeed"), &settings->RotationRange, 0, 20); // these are ok		
+						GUI::Controls::Slider(XorStr("speed#spinspeed"), &settings->RotationRange, 0, 20);	
 						break;
 					case 5:
 						GUI::Controls::Slider(XorStr("range#randomrange"), &settings->RandomRange, 0, 180);
-						break;
-					case 6:
-						GUI::Controls::Slider(XorStr("offset#staticoffset"), &settings->StaticOffset, -180, 180);
-						break;
-					case 7:
-						GUI::Controls::Slider(XorStr("offset#180offset"), &settings->OneEightyZOffset, -180, 180);
 						break;
 					}
 					
 					GUI::Controls::Dropdown(XorStr("Yaw while Moving##aa"), { XorStr("Off"), XorStr("180 Jitter") }, &settings->moving_yaw);
 
 					GUI::Controls::Dropdown(XorStr("Fake Yaw"), { XorStr("Off"), XorStr("Default"), XorStr("Relative"), XorStr("Jitter"), XorStr("Rotate"), XorStr("Random") }, & settings->fakeyaw);
-					if (settings->fakeyaw > 0)
-					{
-						if (settings->fakeyaw == 2)
-							GUI::Controls::Slider(XorStr(""), &settings->relativeamount, -180, 180);
-
-						if (settings->fakeyaw == 3)
-							GUI::Controls::Slider(XorStr(""), &settings->jitterrange, -180, 180);
-
-						if (settings->fakeyaw == 4)
-						{
-							GUI::Controls::Slider(XorStr(""), &settings->rotationrange, -180, 180);
-							GUI::Controls::Slider(XorStr(""), &settings->rotationspeed, 0, 20);
-						}
+					    
+					switch (settings->base_yaw) {
+					case 2:
+						GUI::Controls::Slider(XorStr("range#2"), &settings->relativeamount, -180, 180);
+						break;
+					case 3:
+						GUI::Controls::Slider(XorStr("range#3"), &settings->jitterrange, -180, 180);
+						break;
+					case 4:
+						GUI::Controls::Slider(XorStr("range#4.1"), &settings->rotationrange, -180, 180);
+						GUI::Controls::Slider(XorStr("speed#4.2"), &settings->rotationspeed, 0, 20);
+						break;
 					}
 
 					GUI::Controls::Checkbox(XorStr("Stahlhelm"), &g_Vars.antiaim.stahlhelm);

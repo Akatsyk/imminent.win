@@ -842,6 +842,7 @@
     <ClInclude Include="SDK\Classes\INetworkStringTable.h" />
     <ClInclude Include="SDK\Valve\netadr.h" />
     <ClInclude Include="Utils\tinyformat.h" />
+    <ClInclude Include="SDK\Classes\Header.hpp" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Entrypoint">

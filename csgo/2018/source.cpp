@@ -15,6 +15,8 @@
 #include "Features/Miscellaneous/SkinChanger.hpp"
 #include "Features/Miscellaneous/KitParser.hpp"
 
+#include "Features/Rage/Resolver.hpp"
+
 #include "Hooking/hooker.hpp"
 
 #include "Features/Visuals/CChams.hpp"
@@ -545,6 +547,8 @@ bool BacktrackPlayer(C_BasePlayer* pEnt, float flTargetTime, std::deque<LagCompe
 	LagCompensationRecord* prevRecord = NULL;
 	LagCompensationRecord* record = NULL;
 
+	AllocConsole();
+
 	// check if we have at least one entry
 	if (records->size() <= 0)
 	{
@@ -788,6 +792,19 @@ namespace Interfaces
 
 		if( g_Vars.esp.remove_smoke )
 			*( uintptr_t* )( ( uintptr_t )pOut ) = true;
+	}
+
+	void Body_proxy(CRecvProxyData* pData, void* ptr, void* pOut) {
+
+		static auto ret_arded = (uintptr_t)Memory::Scan("engine.dll", "EB 0D FF 77 10");
+		if (reinterpret_cast<uintptr_t>(_ReturnAddress()) != ret_arded) {
+			C_CSPlayer* player;
+
+			Engine::g_Resolver.OnBodyUpdate(player, pData->m_Value.m_Float);
+		}
+
+		//if (Hooked::m_Body_original)
+		//Hooked::RecvProxy_m_flLowerBodyYawTarget(pData, ptr, pOut);
 	}
 
 	bool Create( void* reserved ) {
@@ -1076,11 +1093,11 @@ namespace Interfaces
 		pPropManager->GetProp( XorStr( "DT_BaseAnimating" ), XorStr( "bClientSideAnimation" ), &prop );
 		m_bClientSideAnimationSwap = std::make_shared<RecvPropHook>( prop, &Hooked::m_bClientSideAnimation );
 
-		//pPropManager->GetProp(XorStr("DT_CSPlayer"), XorStr("m_angEyeAngles[1]"), &prop);
-		//m_pEyeAnglesY = std::make_shared<RecvPropHook>(prop, &Hooked::RecvProxy_m_angEyeAnglesY);
-
 		//pPropManager->GetProp(XorStr("DT_CSPlayer"), XorStr("m_flLowerBodyYawTarget"), &prop);
 		//m_pFlLowerBodyYaw = std::make_shared<RecvPropHook>(prop, &Hooked::RecvProxy_m_flLowerBodyYawTarget);
+
+		//pPropManager->GetProp(XorStr("DT_CSPlayer"), XorStr("m_angEyeAngles[1]"), &prop);
+		//m_pEyeAnglesY = std::make_shared<RecvPropHook>(prop, &Hooked::RecvProxy_m_angEyeAnglesY);
 
 		//pPropManager->GetProp(XorStr("DT_BaseEntity"), XorStr("m_flSimulationTime"), &prop);
 		//m_pFlSimulationTime = std::make_shared<RecvPropHook>(prop, &Hooked::RecvProxy_m_flSimulationTime);

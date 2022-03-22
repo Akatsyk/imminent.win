@@ -42,6 +42,11 @@ namespace Engine {
 		float m_flFinalResolverYaw;
 		float m_flOldLowerBodyYawTarget;
 		std::string m_sResolverMode;
+
+		float m_body, m_old_body;
+
+		float flNextBodyUpdate = 9999999999;
+		// this being like that will prevent it from trying to predict people we dont have the timing of
 	};
 
 	class CResolver {
@@ -55,12 +60,15 @@ namespace Engine {
 		void yaw_bruteforce(C_AnimationRecord* record, C_CSPlayer* player);
 		void ResolveAir(C_CSPlayer* player, C_AnimationRecord* record);
 	public:
+		void OnBodyUpdate(C_CSPlayer* player, float value);
+
 		void ResolveManual(C_CSPlayer* player, C_AnimationRecord* record, bool bDisallow = false);
 		void ResolveYaw(C_CSPlayer* player, C_AnimationRecord* record);
 		void ResetBruteforce(C_CSPlayer* player);
 		void PredictBodyUpdates(C_CSPlayer* player, C_AnimationRecord* record, C_AnimationRecord* prev);
 
 	public:
+
 		// check if the players yaw is sideways.
 		bool IsLastMoveValid(C_AnimationRecord* record, float m_yaw) {
 			auto local = C_CSPlayer::GetLocalPlayer();

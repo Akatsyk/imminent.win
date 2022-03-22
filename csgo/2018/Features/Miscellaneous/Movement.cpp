@@ -406,18 +406,34 @@ namespace Interfaces
 					}
 				}
 				if (g_Vars.misc.funnywalk.enabled) {
-					auto local = C_CSPlayer::GetLocalPlayer();
+					auto pLocal = C_CSPlayer::GetLocalPlayer();
+					if (!pLocal || pLocal->IsDead())
+						return;
 
-					if (cmd->command_number & 1)
-						cmd->forwardmove -= (local->m_vecViewOffset().z < 64.f ? 4.941177f : 1.01f);
-					else
-						cmd->forwardmove += (local->m_vecViewOffset().z < 64.f ? 4.941177f : 1.01f);
+					if (!(g_Vars.globals.m_pCmd->buttons & IN_FORWARD)
+						&& !(g_Vars.globals.m_pCmd->buttons & IN_BACK)
+						&& !(g_Vars.globals.m_pCmd->buttons & IN_MOVELEFT)
+						&& !(g_Vars.globals.m_pCmd->buttons & IN_MOVERIGHT)
+						&& !(g_Vars.globals.m_pCmd->buttons & IN_JUMP)
+						&& pLocal->m_fFlags() & FL_ONGROUND) {
+						// this allows us to move when doing the funny
 
-					float flMaxSpeed = m_movement_data->m_pLocal->m_bIsScoped() > 0 ? weaponInfo.Xor()->m_flMaxSpeed2 : weaponInfo.Xor()->m_flMaxSpeed;
-					float flDesiredSpeed = (flMaxSpeed * 0.33000001);
+						// Interfaces::m_pClientState->m_nChokedCommands()
+						if (Interfaces::m_pGlobalVars->curtime < g_Vars.globals.m_flBodyPred) {
 
-					//SlowWalk(flDesiredSpeed);
+							cmd->viewangles.y += 144;
 
+							if (Interfaces::m_pClientState->m_nChokedCommands() == 2) {
+
+								// todo
+								// add tick shifting to make this work properly
+
+								static bool switcher = false;
+								cmd->sidemove = switcher ? -13.37f : 13.37f;
+								switcher = !switcher;
+							}
+						}
+					}
 				}
 			}
 		}
