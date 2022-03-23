@@ -65,10 +65,22 @@ namespace Engine
 
 		// for sorting
 		Vector m_vecVelocity;
+		Vector m_vecAbsVelocity;
 		float m_flDuckAmount;
 
 		bool m_bSkipDueToResolver = false; // skip record in hitscan
-		bool m_bTeleportDistance = false; // teleport distance was broken
+		bool m_bTeleporting = false; // teleport distance was broken
+		
+		// new record shit
+		bool m_bIsDuplicateTickbase;
+		bool m_bTickbaseShiftedBackwards;
+		bool m_bTickbaseShiftedForwards;
+
+		int m_iTickBase;
+
+		/*CCSGOPlayerAnimState* m_pPlayerAnimStateServer;*/
+
+		C_AnimationLayer m_serverAnimationLayers[13];
 
 		float GetAbsYaw();
 		matrix3x4_t* GetBoneMatrix();
@@ -79,9 +91,7 @@ namespace Engine
 	class C_EntityLagData {
 	public:
 		C_EntityLagData();
-
-		static void ShouldUseServerData(Encrypted_t< C_EntityLagData > pThis);
-		static void UpdateRecordData(Encrypted_t< C_EntityLagData > pThis, C_CSPlayer* player, const player_info_t& info, int updateType);
+		static void UpdateRecordData(Encrypted_t< C_EntityLagData > pThis, C_LagRecord* previousRecord, C_CSPlayer* player, const player_info_t& info, int updateType);
 
 		void Clear();
 
@@ -112,6 +122,12 @@ namespace Engine
 			float  m_flPostVelocityModifier;
 			bool m_bVelocityModifierDiffersFromRecord = false;
 
+			float m_flPreLowerBodyYaw;
+			float m_flPostLowerBodyYaw;
+			float m_flLowerBodyUpdateTime;
+			float m_flRecordedLBYUpdateTime;
+			bool m_bLowerBodyYawDiffersFromRecord = false;
+
 			float  m_flPreShotTime;
 			float  m_flPostShotTime;
 			bool m_bShotTimeDiffersFromRecord = false;
@@ -119,22 +135,29 @@ namespace Engine
 			//C_AnimationLayer m_LastOutputAnimLayers[13];
 
 			bool m_bShouldUseServerData = false;
+
+			void ResetData()
+			{
+				m_bLayersDiffersFromRecord = m_bSimulationTimeDiffersFromRecord = m_bOriginDiffersFromRecord = 
+				m_bAbsAnglesDiffersFromRecord = m_bEyeAnglesDiffersFromRecord = m_bVelocityModifierDiffersFromRecord = 
+				m_bLowerBodyYawDiffersFromRecord = m_bShotTimeDiffersFromRecord = false;
+			}
 		} m_sPPDUData;
 
 		bool m_bShouldNetUpdate = false, m_bNetUpdateWasSilent = false;
 
-		//struct sProxyData {
-		//	float m_flSimulationTime;
-		//	bool m_bRecievedSimTime = false;
+		struct sProxyData {
+			float m_flSimulationTime;
+			bool m_bRecievedSimTime = false;
 
-		//	float m_flEyeYawAngle;
-		//	bool m_bRecievedYawAngle = false;
+			float m_flEyeYawAngle;
+			bool m_bRecievedYawAngle = false;
 
-		//	// will be later used for flick prediction.
-		//	float m_flLowerBodyYaw;
-		//	int m_iTickRecievedLBYUpdate;
-		//	bool m_bLBYUpdated = false, m_bRecievedLBY = false;
-		//} m_sProxyData;
+			// will be later used for flick prediction.
+			float m_flLowerBodyYaw;
+			int m_iTickRecievedLBYUpdate;
+			bool m_bLBYUpdated = false, m_bRecievedLBY = false;
+		} m_sProxyData;
 
 		std::deque<Engine::C_LagRecord> m_History = {};
 		int m_iUserID = -1;
@@ -162,6 +185,37 @@ namespace Engine
 		// autowall resolver stuff
 		float m_flEdges[4];
 		float m_flDirection;
+
+		// new record shit
+		bool m_bIsDuplicateTickbase = false;
+		bool m_bTickbaseShiftedBackwards = false;
+		bool m_bTickbaseShiftedForwards = false;
+
+		int m_iTicksChoked{};
+		int m_iTickBase{};
+		int m_iNewestTickBase{};
+		int m_iServerTickCount{};
+		int m_iTicksSinceLastServerUpdate{};
+
+		float m_flFirstCmdTickBaseTime{};
+		float m_flNewestSimulationTime{};
+
+		std::deque<int> m_iTicksChokedHistory;
+
+		// new lby prediction shit
+		float m_flLowerBodyYaw{};
+		float m_flOldLowerBodyYaw{};
+		float m_flLastLBYUpdateTime{};
+		float m_flNextLBYUpdateTime{};
+		float m_flTimeSinceLastBalanceAdjust{};
+		float m_flLastBalanceAdjustYaw{};
+		float m_flLastBalanceAdjust{};
+
+		bool m_bDidLBYChange = false;
+		bool m_bPredictedLBY = false;
+		bool m_bFlickedToLBY = false;
+		bool m_bTriggeredBalanceAdjust = false;
+		bool m_bDidLBYBreakWithAHighDelta = false;
 
 		// player prediction, need many improvments
 		static bool DetectAutoDirerction( Encrypted_t< C_EntityLagData > pThis, C_CSPlayer* player );

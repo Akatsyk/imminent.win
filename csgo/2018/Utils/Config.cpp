@@ -19,24 +19,24 @@ BOOL ConfigManager::DirectoryExists( LPCTSTR szPath ) {
 }
 
 std::vector<std::string> ConfigManager::GetConfigs( ) {
-	static bool created_cfg = true;
-	if( created_cfg ) {
+	static bool created_config = true;
+	if( created_config ) {
 		namespace fs = std::experimental::filesystem;
 		fs::path full_path( fs::current_path( ) );
-		std::wstring str = full_path.wstring( ) + XorStr( L"\\leanhack" );
+		std::wstring str = full_path.wstring( ) + XorStr( L"\\imminent.win" );
 
 		CreateDirectoryW( str.c_str( ), nullptr );
-		str += XorStr( L"\\cfg" );
+		str += XorStr( L"\\config" );
 		CreateDirectoryW( str.c_str( ), nullptr );
 
-		created_cfg = false;
+		created_config = false;
 	}
 
-	std::string config_extension = XorStr( ".json" );
+	std::string config_extension = XorStr( ".win" );
 	std::vector<std::string> names;
 
 	WIN32_FIND_DATAA find_data;
-	HANDLE preset_file = FindFirstFileA( ( XorStr( "leanhack\\cfg\\*" ) + config_extension ).c_str( ), &find_data );
+	HANDLE preset_file = FindFirstFileA( ( XorStr( "imminent.win\\config\\*" ) + config_extension ).c_str( ), &find_data );
 
 	if( preset_file != INVALID_HANDLE_VALUE ) {
 		do {
@@ -44,7 +44,7 @@ std::vector<std::string> ConfigManager::GetConfigs( ) {
 				continue;
 
 			std::string s = find_data.cFileName;
-			int pos = s.find( XorStr( ".json" ) );
+			int pos = s.find( XorStr( ".win" ) );
 
 			s.erase( s.begin( ) + pos, s.begin( ) + pos + 5 );
 
@@ -58,7 +58,7 @@ std::vector<std::string> ConfigManager::GetConfigs( ) {
 }
 
 void ConfigManager::LoadConfig( std::string configname ) {
-	std::ifstream input_file = std::ifstream( ( XorStr( "leanhack\\cfg\\" ) + configname + XorStr( ".json" ) ).c_str( ) );
+	std::ifstream input_file = std::ifstream( ( XorStr( "imminent.win\\config\\" ) + configname + XorStr( ".win" ) ).c_str( ) );
 	if( !input_file.good( ) )
 		return;
 
@@ -100,7 +100,7 @@ void ConfigManager::LoadConfig( std::string configname ) {
 }
 
 void ConfigManager::SaveConfig( std::string configname ) {
-	std::ofstream o( ( XorStr( "leanhack\\cfg\\" ) + configname + XorStr( ".json" ) ).c_str( ) );
+	std::ofstream o( ( XorStr( "imminent.win\\config\\" ) + configname + XorStr( ".win" ) ).c_str( ) );
 	if( !o.is_open( ) )
 		return;
 
@@ -121,11 +121,11 @@ void ConfigManager::SaveConfig( std::string configname ) {
 }
 
 void ConfigManager::RemoveConfig( std::string configname ) {
-	std::remove( ( XorStr( "leanhack\\cfg\\" ) + configname + XorStr( ".json" ) ).c_str( ) );
+	std::remove( ( XorStr( "imminent.win\\config\\" ) + configname + XorStr( ".win" ) ).c_str( ) );
 }
 
 void ConfigManager::CreateConfig( std::string configname ) {
-	std::ofstream o( ( XorStr( "leanhack\\cfg\\" ) + configname + XorStr( ".json" ) ).c_str( ) );
+	std::ofstream o( ( XorStr( "imminent.win\\config\\" ) + configname + XorStr( ".win" ) ).c_str( ) );
 }
 
 void ConfigManager::ResetConfig( ) {
@@ -138,7 +138,7 @@ void ConfigManager::OpenConfigFolder( ) {
 	namespace fs = std::experimental::filesystem;
 	fs::path full_path( fs::current_path( ) );
 
-	std::wstring str = full_path.wstring( ) + XorStr( L"\\leanhack\\cfg" );
+	std::wstring str = full_path.wstring( ) + XorStr( L"\\imminent.win\\config" );
 
 	PIDLIST_ABSOLUTE pidl;
 	if( SUCCEEDED( SHParseDisplayName( str.c_str( ), 0, &pidl, 0, 0 ) ) ) {

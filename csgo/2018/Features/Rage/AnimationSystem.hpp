@@ -40,7 +40,7 @@ namespace Engine
 	public:
 		bool m_bIsInvalid;
 		bool m_bIsShoting;
-		bool m_bTeleportDistance;
+		bool m_bTeleporting;
 		bool m_bShiftingTickbase;
 		bool m_bResolved;
 
@@ -61,7 +61,7 @@ namespace Engine
 		float m_flShotTime;
 		float m_flDuckAmount;
 		float m_flDelta;
-		float m_flLowerBodyYawTarget;
+		float m_flLowerBodyYawTarget, m_flOldLowerBodyYaw;
 		float m_flAbsRotation;
 
 		float m_flFeetYawRate;
@@ -69,6 +69,7 @@ namespace Engine
 
 		int m_iResolverMode;
 
+		/*CCSGOPlayerAnimState* m_serverPlayerAnimState;*/
 		C_AnimationLayer m_serverAnimOverlays[ 13 ];
 	};
 

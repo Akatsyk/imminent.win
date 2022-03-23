@@ -374,27 +374,27 @@ void __fastcall hkAddRenderable( void* ecx, void* edx, IClientRenderable* pRende
 using PhysicsSimulateFn = void( __thiscall* ) ( void* ecx );
 PhysicsSimulateFn oPhysicsSimulate;
 void __fastcall hkPhysicsSimulate( void* ecx, void* edx ) {
-	auto local = ( C_CSPlayer* )Interfaces::m_pEntList->GetClientEntity( Interfaces::m_pEngine->GetLocalPlayer( ) );
-	if( !ecx || !local || local->IsDead( ) || local != ecx )
-		return oPhysicsSimulate( ecx );
+	//auto local = ( C_CSPlayer* )Interfaces::m_pEntList->GetClientEntity( Interfaces::m_pEngine->GetLocalPlayer( ) );
+	//if( !ecx || !local || local->IsDead( ) || local != ecx )
+	//	return oPhysicsSimulate( ecx );
 
-	int nSimulationTick = *( int* )( uintptr_t( ecx ) + 0x2AC );
-	auto pCommandContext = ( C_CommandContext* )( uintptr_t( ecx ) + 0x34FC );
+	//int nSimulationTick = *( int* )( uintptr_t( ecx ) + 0x2AC );
+	//auto pCommandContext = ( C_CommandContext* )( uintptr_t( ecx ) + 0x34FC );
 
-	if( !pCommandContext || Interfaces::m_pGlobalVars->tickcount == nSimulationTick || !pCommandContext->needsprocessing )
-		return;
+	//if( !pCommandContext || Interfaces::m_pGlobalVars->tickcount == nSimulationTick || !pCommandContext->needsprocessing )
+	//	return;
 
-	if( pCommandContext->cmd.tick_count >= ( g_Vars.globals.m_pCmd->tick_count + int( 1 / Interfaces::m_pGlobalVars->interval_per_tick ) + g_Vars.sv_max_usercmd_future_ticks->GetInt( ) ) ) {
-		nSimulationTick = Interfaces::m_pGlobalVars->tickcount;
-		pCommandContext->needsprocessing = false;
+	//if( pCommandContext->cmd.tick_count >= ( g_Vars.globals.m_pCmd->tick_count + int( 1 / Interfaces::m_pGlobalVars->interval_per_tick ) + g_Vars.sv_max_usercmd_future_ticks->GetInt( ) ) ) {
+	//	nSimulationTick = Interfaces::m_pGlobalVars->tickcount;
+	//	pCommandContext->needsprocessing = false;
 
-		Engine::Prediction::Instance( )->StoreNetvarCompression( &pCommandContext->cmd );
-	}
-	else {
-		Engine::Prediction::Instance( )->RestoreNetvarCompression( &pCommandContext->cmd );
-		oPhysicsSimulate( ecx );
-		Engine::Prediction::Instance( )->StoreNetvarCompression( &pCommandContext->cmd );
-	}
+	//	Engine::Prediction::Instance( )->StoreNetvarCompression( &pCommandContext->cmd );
+	//}
+	//else {
+	//	Engine::Prediction::Instance( )->RestoreNetvarCompression( &pCommandContext->cmd );
+	//	oPhysicsSimulate( ecx );
+	//	Engine::Prediction::Instance( )->StoreNetvarCompression( &pCommandContext->cmd );
+	//}
 }
 
 typedef void( __thiscall* fnCalcViewBob ) ( C_BasePlayer*, Vector& );
@@ -786,6 +786,7 @@ namespace Interfaces
 	RecvPropHook::Shared m_pEyeAnglesY = nullptr;
 	RecvPropHook::Shared m_pFlLowerBodyYaw = nullptr;
 	RecvPropHook::Shared m_pFlSimulationTime = nullptr;
+	/*RecvPropHook::Shared m_BodyOriginal = nullptr;*/
 
 	void m_bDidSmokeEffect( CRecvProxyData* pData, void* pStruct, void* pOut ) {
 		Interfaces::m_pDidSmokeEffectSwap->GetOriginalFunction( )( pData, pStruct, pOut );
@@ -794,18 +795,18 @@ namespace Interfaces
 			*( uintptr_t* )( ( uintptr_t )pOut ) = true;
 	}
 
-	void Body_proxy(CRecvProxyData* pData, void* ptr, void* pOut) {
+	//void Body_proxy(CRecvProxyData* pData, void* ptr, void* pOut) {
 
-		static auto ret_arded = (uintptr_t)Memory::Scan("engine.dll", "EB 0D FF 77 10");
-		if (reinterpret_cast<uintptr_t>(_ReturnAddress()) != ret_arded) {
-			C_CSPlayer* player;
+	//	static auto ret_arded = (uintptr_t)Memory::Scan("engine.dll", "EB 0D FF 77 10");
+	//	if (reinterpret_cast<uintptr_t>(_ReturnAddress()) != ret_arded) {
+	//		C_CSPlayer* player;
 
-			Engine::g_Resolver.OnBodyUpdate(player, pData->m_Value.m_Float);
-		}
+	//		Engine::g_Resolver.OnBodyUpdate(player, pData->m_Value.m_Float);
+	//	}
 
-		//if (Hooked::m_Body_original)
-		//Hooked::RecvProxy_m_flLowerBodyYawTarget(pData, ptr, pOut);
-	}
+	//	if (m_BodyOriginal)
+	//		Hooked::RecvProxy_m_flLowerBodyYawTarget(pData, ptr, pOut);
+	//}
 
 	bool Create( void* reserved ) {
 		auto& pPropManager = Engine::PropManager::Instance( );

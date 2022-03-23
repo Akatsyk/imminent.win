@@ -182,23 +182,45 @@ namespace Interfaces
 
 		run_once = true;
 
-		std::string szClanTag = XorStr("leanhack");
+		std::string szClanTag = XorStr("imminent.win");
 		std::string szSuffix = XorStr("");
 		static int iPrevFrame = 0;
 		static bool bReset = false;
-		int iCurFrame = ((int)(Interfaces::m_pPrediction->GetUnpredictedGlobals()->curtime)) % 9;
+		int iCurFrame = ((int)(Interfaces::m_pPrediction->GetUnpredictedGlobals()->curtime)) % 31;
 
 		if (iPrevFrame != iCurFrame) {
-			switch (iCurFrame % 9) {
-			case 0: szClanTag = XorStr("leanhack "); break;
-			case 1: szClanTag = XorStr("eanhack l"); break;
-			case 2: szClanTag = XorStr("anhack le"); break;
-			case 3: szClanTag = XorStr("nhack lea"); break;
-			case 4: szClanTag = XorStr("hack lean"); break;
-			case 5: szClanTag = XorStr("ack leanh"); break;
-			case 6: szClanTag = XorStr("ck leanha"); break;
-			case 7: szClanTag = XorStr("k leanhac"); break;
-			case 8: szClanTag = XorStr(" leanhack"); break;
+			switch (iCurFrame % 31) {
+			case 0:  szClanTag = XorStr("                "); break;
+			case 1:  szClanTag = XorStr("               i"); break;
+			case 2:  szClanTag = XorStr("              im"); break;
+			case 3:  szClanTag = XorStr("             imm"); break;
+			case 4:  szClanTag = XorStr("            immi"); break;
+			case 5:  szClanTag = XorStr("           immin"); break;
+			case 6:  szClanTag = XorStr("          immine"); break;
+			case 7:  szClanTag = XorStr("         imminen"); break;
+			case 8:  szClanTag = XorStr("        imminent"); break;
+			case 9:  szClanTag = XorStr("       imminent."); break;
+			case 10: szClanTag = XorStr("      imminent.w"); break;
+			case 11: szClanTag = XorStr("     imminent.wi"); break;
+			case 12: szClanTag = XorStr("    imminent.win"); break;
+			case 13: szClanTag = XorStr("   imminent.win "); break;
+			case 14: szClanTag = XorStr("  imminent.win  "); break;
+			case 15: szClanTag = XorStr("  imminent.win  "); break;
+			case 16: szClanTag = XorStr("  imminent.win  "); break;
+			case 17: szClanTag = XorStr("  imminent.win  "); break;
+			case 18: szClanTag = XorStr(" imminent.win   "); break;
+			case 19: szClanTag = XorStr("imminent.win    "); break;
+			case 20: szClanTag = XorStr("mminent.win     "); break;
+			case 21: szClanTag = XorStr("minent.win      "); break;
+			case 22: szClanTag = XorStr("inent.win       "); break;
+			case 23: szClanTag = XorStr("nent.win        "); break;
+			case 24: szClanTag = XorStr("ent.win         "); break;
+			case 25: szClanTag = XorStr("nt.win          "); break;
+			case 26: szClanTag = XorStr("t.win           "); break;
+			case 27: szClanTag = XorStr(".win            "); break;
+			case 28: szClanTag = XorStr("win             "); break;
+			case 29: szClanTag = XorStr("in              "); break;
+			case 30: szClanTag = XorStr("n               "); break;
 			}
 
 			// set our clantag

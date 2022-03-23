@@ -1633,7 +1633,7 @@ namespace Interfaces
 								if (bestPoint->record->m_bExtrapolated)
 									flags.push_back(XorStr("E"));
 
-								if (m_lag_data->m_History.front().m_bTeleportDistance)
+								if (m_lag_data->m_History.front().m_bTeleporting)
 									flags.push_back(XorStr("LC"));
 
 								if (bestPoint->isLethal)
@@ -2037,7 +2037,7 @@ namespace Interfaces
 			arrRecords[recordsCount] = &*it;
 			recordsCount++;
 
-			//if (it->m_bTeleportDistance) {
+			//if (it->m_bTeleporting) {
 			//	ILoggerEvent::Get()->PushEvent("RECORDS INVALIDATED; BREAKING ITERATION", FloatColor(0.8f, 0.8f, 0.8f), true, XorStr("lrIterationDebug "));
 			//	break;
 			//}
@@ -2085,56 +2085,8 @@ namespace Interfaces
 		return pBestRecord;
 	}
 
-	float ReturnInterpolationTime() {
-		static auto cl_updaterate = g_Vars.cl_updaterate;
-		static auto cl_interp = g_Vars.cl_interp;
-
-		const auto update_rate = cl_updaterate->GetInt();
-		const auto interp_ratio = cl_interp->GetFloat();
-
-		auto lerp = interp_ratio / update_rate;
-		if (lerp <= cl_interp->GetFloat())
-			lerp = cl_interp->GetFloat();
-
-		return lerp;
-	}
-
-	bool IsOurTargetedTickValid(Engine::C_LagRecord* record) {
-		C_CSPlayer* pLocal = C_CSPlayer::GetLocalPlayer();
-		if (!pLocal && !pLocal->IsDead())
-			return false;
-
-		auto nci = Interfaces::m_pEngine->GetNetChannelInfo();
-
-		// NOTE: predict the servertime.
-		float serverTime = pLocal->m_nTickBase() * Interfaces::m_pGlobalVars->interval_per_tick;
-
-		// NOTE: get the time of our target.
-		float flTargetTime = record->m_flSimulationTime;
-
-		int latencyticks = std::max(0, TIME_TO_TICKS(Interfaces::m_pEngine->GetNetChannelInfo()->GetLatency(FLOW_OUTGOING)));
-		int server_tickcount = Interfaces::m_pEngine->GetServerTick() + latencyticks + 1;
-		float server_time_at_frame_end_from_last_frame = TICKS_TO_TIME(server_tickcount - 1);
-
-		int deltaticks = record->m_iLaggedTicks + 1;
-		int updatedelta = Interfaces::m_pEngine->GetServerTick() - record->m_iServerTick;
-		if (latencyticks > deltaticks - updatedelta) {
-			//only check if record is deleted if enemy would have sent another tick to the server already
-
-			int flDeadtime = (server_time_at_frame_end_from_last_frame - g_Vars.sv_maxunlag->GetFloat());
-
-			if (flTargetTime < flDeadtime)
-				return false; //record won't be valid anymore
-		}
-
-		// NOTE: outgoing latency + const viewlag aka TICKS_TO_TIME(TIME_TO_TICKS(GetClientInterpAmount())) and clamp correct to sv_maxunlag
-		float correct = std::clamp(nci->GetAvgLatency(FLOW_OUTGOING) + ReturnInterpolationTime(), 0.f, g_Vars.sv_maxunlag->GetFloat());
-		float delta = correct - (serverTime - flTargetTime);
-		return fabsf(delta) < 0.2f;
-	}
-
 	bool C_Ragebot::IsRecordValid(C_CSPlayer* player, Engine::C_LagRecord* record) {
-		return IsOurTargetedTickValid(record);//Engine::LagCompensation::Get()->IsRecordOutOfBounds(*record, 0.2f);
+		return !Engine::LagCompensation::Get()->IsRecordOutOfBounds(*record, 0.2f);
 	}
 
 	bool C_Ragebot::AimAtPoint(C_AimPoint* bestPoint) {

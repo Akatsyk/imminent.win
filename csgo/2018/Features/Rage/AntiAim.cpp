@@ -216,6 +216,10 @@ namespace Interfaces
 			if (g_Vars.antiaim.funnymode && LocalPlayer->m_fFlags() & FL_ONGROUND && LocalPlayer->m_vecVelocity().Length() <= 0.f)
 				cmd->viewangles.z = 30.f;
 
+			bool bSwap = false;
+			animState->m_flAbsRotation = bSwap ? 36.f : -36.f;
+			bSwap != bSwap;
+
 			cmd->viewangles.y = flYaw;
 
 			Distort(cmd, false);
@@ -226,6 +230,13 @@ namespace Interfaces
 			std::uniform_int_distribution randomjew(-settings->jitterrange, settings->jitterrange);
 			std::uniform_int_distribution randomInsideRandom(-120, 120);
 			std::uniform_int_distribution randombitch(-randomInsideRandom(generator), randomInsideRandom(generator));
+
+			if (g_Vars.antiaim.funnymode && LocalPlayer->m_fFlags() & FL_ONGROUND && LocalPlayer->m_vecVelocity().Length() <= 0.f)
+				cmd->viewangles.z = 50.f;
+
+			bool bSwap = false;
+			animState->m_flAbsRotation = bSwap ? 69.f : -69.f;
+			bSwap != bSwap;
 
 			switch (settings->fakeyaw)
 			{

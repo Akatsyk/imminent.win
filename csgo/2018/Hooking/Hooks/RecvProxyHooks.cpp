@@ -160,30 +160,30 @@ namespace Hooked
 	//	Interfaces::m_pFlLowerBodyYaw->GetOriginalFunction()(pData, pStruct, pOut);
 	//}
 
-	//void RecvProxy_m_angEyeAnglesY(CRecvProxyData* pData, void* pStruct, void* pOut) 
-	//{
-	//	g_Vars.globals.szLastHookCalled = XorStr("29");
+	void RecvProxy_m_angEyeAnglesY(CRecvProxyData* pData, void* pStruct, void* pOut) 
+	{
+		g_Vars.globals.szLastHookCalled = XorStr("69");
 
-	//	if (!pData || !pStruct || !pOut)
-	//		return;
+		if (!pData || !pStruct || !pOut)
+			return;
 
-	//	Interfaces::m_pEyeAnglesY->GetOriginalFunction()(pData, pStruct, pOut);
+		Interfaces::m_pEyeAnglesY->GetOriginalFunction()(pData, pStruct, pOut);
 
-	//	C_CSPlayer* pEntity = (C_CSPlayer*)pEntity;
-	//	if (Interfaces::m_pEngine->IsInGame() && Interfaces::m_pEngine->IsConnected() && C_CSPlayer::GetLocalPlayer() && pEntity && pEntity->IsPlayer() && pEntity != C_CSPlayer::GetLocalPlayer())
-	//	{
-	//		auto lagData = Engine::LagCompensation::Get()->GetLagData(pEntity->EntIndex()).Xor();
-	//		if (lagData && lagData->m_History.size())
-	//		{
-	//			// just to make sure this variable isn't always set to true.
-	//			lagData->m_sProxyData.m_bRecievedYawAngle = false;
-	//			lagData->m_sProxyData.m_flEyeYawAngle = pData->m_Value.m_Float;
-	//			lagData->m_sProxyData.m_bRecievedYawAngle = true;
-	//		}
-	//	}
+		C_CSPlayer* pEntity = (C_CSPlayer*)pEntity;
+		if (Interfaces::m_pEngine->IsInGame() && Interfaces::m_pEngine->IsConnected() && C_CSPlayer::GetLocalPlayer() && pEntity && pEntity->IsPlayer() && pEntity != C_CSPlayer::GetLocalPlayer())
+		{
+			auto lagData = Engine::LagCompensation::Get()->GetLagData(pEntity->EntIndex()).Xor();
+			if (lagData && lagData->m_History.size())
+			{
+				// just to make sure this variable isn't always set to true.
+				lagData->m_sProxyData.m_bRecievedYawAngle = false;
+				lagData->m_sProxyData.m_flEyeYawAngle = pData->m_Value.m_Float;
+				lagData->m_sProxyData.m_bRecievedYawAngle = true;
+			}
+		}
 
-	//	Interfaces::m_pEyeAnglesY->GetOriginalFunction()(pData, pStruct, pOut);
-	//}
+		Interfaces::m_pEyeAnglesY->GetOriginalFunction()(pData, pStruct, pOut);
+	}
 
 	void m_bClientSideAnimation( CRecvProxyData* pData, void* pStruct, void* pOut ) 
 	{

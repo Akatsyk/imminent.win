@@ -5,6 +5,8 @@
 #include "../../SDK/Classes/weapon.hpp"
 #include "../../Features/Miscellaneous/SkinChanger.hpp"
 #include "../../Features/Rage/LagCompensation.hpp"
+#include "../../Features/Visuals/EventLogger.hpp"
+#include "../../Utils/tinyformat.h"
 #include <intrin.h>
 
 #include "../../Utils/Threading/threading.h"
@@ -119,7 +121,7 @@ namespace Hooked
 			return orig(ecx, updateType);
 
 		auto lagData = Engine::LagCompensation::Get()->GetLagData(entity->m_entIndex);
-		if (!lagData.IsValid() || lagData->m_History.empty())
+		if (!lagData.IsValid())
 			return orig(ecx, updateType);
 
 		// this check is so fucking bad holy shit
@@ -139,6 +141,9 @@ namespace Hooked
 		ppduDataPointer.m_vecPreNetOrigin = entity->GetNetworkOrigin();
 		ppduDataPointer.m_angPreAbsAngles = entity->GetAbsAngles();
 		ppduDataPointer.m_angPreEyeAngles = entity->m_angEyeAngles();
+		ppduDataPointer.m_flPreLowerBodyYaw = entity->m_flLowerBodyYawTarget();
+		//ppduDataPointer.m_flLowerBodyUpdateTime = entity->m_flAnimationTime();
+		//std::clamp(ppduDataPointer.m_flLowerBodyUpdateTime, 0.0f, 10.0f);
 		ppduDataPointer.m_flPreVelocityModifier = entity->m_flVelocityModifier();
 		ppduDataPointer.m_flPreShotTime = 0.0f;
 		if (auto weapon = (C_WeaponCSBaseGun*)entity->m_hActiveWeapon().Get())
@@ -149,12 +154,15 @@ namespace Hooked
 			animState->m_nLastFrame = Interfaces::m_pGlobalVars->framecount;
 
 		// initalize these variables as false before continuation.
+		// commented this out as this is done every tick now.
 		ppduDataPointer.m_bOriginDiffersFromRecord = false;
 		ppduDataPointer.m_bLayersDiffersFromRecord = false;
 		ppduDataPointer.m_bAbsAnglesDiffersFromRecord = false;
 		ppduDataPointer.m_bEyeAnglesDiffersFromRecord = false;
 		ppduDataPointer.m_bVelocityModifierDiffersFromRecord = false;
 		ppduDataPointer.m_bShotTimeDiffersFromRecord = false;
+		ppduDataPointer.m_bSimulationTimeDiffersFromRecord = false;
+		ppduDataPointer.m_bLowerBodyYawDiffersFromRecord = false;
 
 		if (local != entity)
 			simtime3 = entity->m_flSimulationTime(); 
@@ -179,9 +187,8 @@ namespace Hooked
 		if (local == entity)
 			ISkinChanger::Get()->OnNetworkUpdate(true);
 
-		
 		auto lagData = Engine::LagCompensation::Get()->GetLagData(entity->m_entIndex);
-		if (!lagData.IsValid() || lagData->m_History.empty() || !lagData->m_History.front().m_bIsValid)
+		if (!lagData.IsValid() /*|| !lagData->m_History.front().m_bIsValid*/)
 			return orig(ecx, updateType);
 
 		auto& ppduDataPointer = lagData->m_sPPDUData;
@@ -195,6 +202,15 @@ namespace Hooked
 		if (ppduDataPointer.m_vecPreNetOrigin != networkOrigin)
 		{
 			ppduDataPointer.m_vecPostNetOrigin = networkOrigin;
+
+			if (!lagData->m_History.empty() && lagData->m_History.size() >= 2)
+			{
+				auto record = &lagData->m_History.front();
+				
+				// i would set this to animRecord but that is where we are setting these variables anyways.
+				record->m_vecOrigin = networkOrigin;
+			}
+
 			ppduDataPointer.m_bOriginDiffersFromRecord = true;
 			dataModified = true;
 		}
@@ -237,7 +253,8 @@ namespace Hooked
 		}
 
 		QAngle absAngles = entity->GetAbsAngles();
-		if (ppduDataPointer.m_angPreAbsAngles != absAngles) {
+		if (ppduDataPointer.m_angPreAbsAngles != absAngles) 
+		{
 			ppduDataPointer.m_angPostAbsAngles = absAngles;
 
 			// this check isn't the most needed but fuck it we might as well be as accurate as possible!
@@ -245,10 +262,21 @@ namespace Hooked
 		}
 
 		QAngle eyeAngles = entity->m_angEyeAngles();
-		if (ppduDataPointer.m_angPreEyeAngles != eyeAngles) {
+		if (ppduDataPointer.m_angPreEyeAngles != eyeAngles) 
+		{
 			ppduDataPointer.m_angPostEyeAngles = eyeAngles;
 			ppduDataPointer.m_bEyeAnglesDiffersFromRecord = true;
 			dataModified = true;
+		}
+
+		float flLBY = entity->m_flLowerBodyYawTarget();
+		if (ppduDataPointer.m_flPreLowerBodyYaw != flLBY)
+		{
+			ppduDataPointer.m_flPostLowerBodyYaw = flLBY;
+			//ILoggerEvent::Get()->PushEvent(tfm::format(XorStr("LBY UPDATED AT %f"), ppduDataPointer.m_flLowerBodyUpdateTime), FloatColor(0.5f, 0.5f, 0.5f), true);
+			//ppduDataPointer.m_flRecordedLBYUpdateTime = ppduDataPointer.m_flLowerBodyUpdateTime;
+			//ppduDataPointer.m_flLowerBodyUpdateTime = 0.0f; // null lby update time so we don't over stack it.
+			ppduDataPointer.m_bLowerBodyYawDiffersFromRecord = true;
 		}
 
 		const float simTime = entity->m_flSimulationTime();

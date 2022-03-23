@@ -213,8 +213,8 @@ void CExtendedSound::SetupAdjustPlayer(C_CSPlayer* player, SndInfo_t& sound) {
 
 bool CExtendedSound::ValidSound(SndInfo_t& sound) {
 	// Use only server dispatched sounds.
-	//if (!sound.m_bFromServer)
-	//   return false;
+	if (!sound.m_bFromServer)
+	   return false;
 
 	//  We don't want the sound to keep following client's predicted origin.
 	for (int iter = 0; iter < m_utlvecSoundBuffer.Count(); iter++) {

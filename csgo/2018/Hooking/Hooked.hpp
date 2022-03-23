@@ -193,8 +193,6 @@ namespace Hooked
 
 	using RecvVarProxy_t = void(__cdecl*)(CRecvProxyData* data, void* struct_ptr, void* out);
 
-	RecvVarProxy_t m_Body_original;
-
 	// Recv proxy hook
 	void m_nSmokeEffectTickBegin(CRecvProxyData* pData, void* pStruct, void* pOut);
 	void RecvProxy_m_flSimulationTime(CRecvProxyData* pData, void* pStruct, void* pOut);

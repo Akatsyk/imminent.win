@@ -44,7 +44,8 @@ namespace Hooked
 			static bool done = false;
 
 			if( !done ) {
-				MsgCol( Color( 255, 255, 255, 255 ), XorStr( "Welcome to leanhack.\n" ) );
+				MsgCol( Color( 255, 255, 255, 255 ), XorStr( "Welcome to imminent.win!\n" ) );
+				// add inject sound here skylet.
 				done = true;
 			}
 		}

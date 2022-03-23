@@ -222,7 +222,7 @@ void DrawWatermark() {
 
 	bool connected = Interfaces::m_pEngine->IsInGame();
 
-	std::string text = XorStr("leanhack");
+	std::string text = XorStr("imminent.win");
 	//char char1 = g_Vars.globals.c_login[ 0 ], char2 = g_Vars.globals.c_login[ 1 ], char3 = g_Vars.globals.c_login[ 2 ], char5 = g_Vars.globals.c_login[ 5 ];
 
 	//bool is_undercover = char1 == 'd' && char2 == 'e' && char3 == 'v';

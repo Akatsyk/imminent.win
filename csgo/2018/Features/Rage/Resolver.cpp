@@ -308,18 +308,19 @@ namespace Engine {
 		}
 		else {
 			Vector delta = vDormantOrigin - record->m_vecOrigin;
-			if (delta.Length() > 16.f) {
+			if (delta.Length() > 16.f && (!record->m_bUnsafeVelocityTransition || record->m_vecVelocity.Length() > 20.f)) {
 				data.m_bCollectedValidMoveData = true;
 				vDormantOrigin = Vector();
 			}
 
 			// improved logic on lby check
-			static float flLBYDifference = record->m_flLowerBodyYawTarget - g_ResolverData[player->EntIndex()].m_flOldLowerBodyYawTarget;
-			if ((flLBYDifference > 56.f && nMisses >= 3 || flLBYDifference > 36.f) && !bLBYIsFlicking && !record->m_bUnsafeVelocityTransition) // funny number
+			// possibly only do this resolver if we have server data.
+			static float flLBYDifference = pLagData->m_sPPDUData.m_bShouldUseServerData ? pLagData->m_sPPDUData.m_flPostLowerBodyYaw - pLagData->m_sPPDUData.m_flPreLowerBodyYaw : record->m_flLowerBodyYawTarget - record->m_flOldLowerBodyYaw;
+			if (/*(flLBYDifference > 56.f && nMisses >= 3 || flLBYDifference > 36.f)*/flLBYDifference > 72.f && !bLBYIsFlicking && !record->m_bUnsafeVelocityTransition) // funny number
 				bDetectingDistortion = true;
 		}
 
-		bool bModulatingLBY = bDetectingDistortion || bLBYIsFlicking || record->m_flLowerBodyYawTarget != g_ResolverData[player->EntIndex()].m_flOldLowerBodyYawTarget || record->m_bUnsafeVelocityTransition;
+		bool bModulatingLBY = bDetectingDistortion || bLBYIsFlicking || record->m_flLowerBodyYawTarget != record->m_flOldLowerBodyYaw || record->m_bUnsafeVelocityTransition;
 
 		// the logic behind this should work.
 		// this could also be the reason everything is broken.
@@ -345,22 +346,21 @@ namespace Engine {
 		// distortion resolver; or at least hopefully a distortion resolver.
 		// the last move check possibly might not needed
 		// removed the last moving check as distortion should invalidate last moving as it updates the lby.
-		/*
 		else if (bDetectingDistortion ) //&& g_Vars.rage.distortion_resolver.enabled
 		{
 			g_ResolverData[player->EntIndex()].m_sResolverMode = XorStr("D");
 			switch (nMisses % 2) {
 			case 0: // lby difference
-				g_ResolverData[player->EntIndex()].m_flFinalResolverYaw = record->m_flLowerBodyYawTarget - g_ResolverData[player->EntIndex()].m_flOldLowerBodyYawTarget;
+				g_ResolverData[player->EntIndex()].m_flFinalResolverYaw = record->m_flLowerBodyYawTarget - record->m_flOldLowerBodyYaw;
 				break;
 
 			case 1: // distortion estimate
 			{
-				g_ResolverData[player->EntIndex()].m_flFinalResolverYaw = Math::ClampYr(Math::ClampYr(record->m_angEyeAngles.y) - (record->m_flLowerBodyYawTarget - g_ResolverData[player->EntIndex()].m_flOldLowerBodyYawTarget));
+				g_ResolverData[player->EntIndex()].m_flFinalResolverYaw = Math::ClampYr(Math::ClampYr(record->m_angEyeAngles.y) - (record->m_flLowerBodyYawTarget - record->m_flOldLowerBodyYaw));
 				break;
 			}
 			}
-		}*/
+		}
 
 		// only force this if we don't have a valid last move or if our lby is being modulated.
 		// commented for now.
@@ -544,12 +544,6 @@ namespace Engine {
 		m_flLastDelta = m_flDelta;
 	}
 
-	void CResolver::OnBodyUpdate(C_CSPlayer* player, float value) {
-		// set data.
-		Engine::g_ResolverData[player->EntIndex()].m_old_body = Engine::g_ResolverData[player->EntIndex()].m_body;
-		Engine::g_ResolverData[player->EntIndex()].m_body = value;
-	}
-
 	void CResolver::PredictBodyUpdates(C_CSPlayer* player, C_AnimationRecord* record, C_AnimationRecord* prev) {
 		auto local = C_CSPlayer::GetLocalPlayer();
 		if (!local)
@@ -593,13 +587,56 @@ namespace Engine {
 			return;
 		}
 
-		if (Engine::g_ResolverData[player->EntIndex()].m_body != Engine::g_ResolverData[player->EntIndex()].m_old_body) {
-			record->m_angEyeAngles.y = player->m_angEyeAngles().y = Engine::g_ResolverData[player->EntIndex()].m_body;
+		//// let's hit this nigga when his lby changes
+		//if (pLagData->m_bDidLBYChange)
+		//{
+		//	bLBYIsFlicking = true;
+		//	g_ResolverData[player->EntIndex()].m_flFinalResolverYaw = pLagData->m_flLowerBodyYaw;
+		//	g_ResolverData[player->EntIndex()].flNextBodyUpdate = pLagData->m_flNextLBYUpdateTime;
+		//}
 
-			printf("[lby update detected]\n", player->m_angEyeAngles().y);
+		//// this fool triggered balance adjust get his ass
+		//else if (pLagData->m_bTriggeredBalanceAdjust)
+		//{
+		//	bLBYIsFlicking = true;
+		//	g_ResolverData[player->EntIndex()].m_flFinalResolverYaw = pLagData->m_flLowerBodyYaw;
 
-			g_ResolverData[player->EntIndex()].flNextBodyUpdate = player->m_flAnimationTime() + 1.1f;
-		}
+		//	if (record->m_vecVelocity.Length() > 5.f)
+		//		g_ResolverData[player->EntIndex()].flNextBodyUpdate = player->m_flAnimationTime() + 0.22f;
+		//	else if (player->m_flAnimationTime() > g_ResolverData[player->EntIndex()].flNextBodyUpdate)
+		//		g_ResolverData[player->EntIndex()].flNextBodyUpdate = player->m_flAnimationTime() + 1.1f;
+		//}
+
+		//// we're gonna get your bitch ass
+		//else if (pLagData->m_bFlickedToLBY && pLagData->m_bDidLBYBreakWithAHighDelta)
+		//{
+		//	bLBYIsFlicking = true;
+
+		//	 possibly set this to away angle + 120 since we know they are breaking with a high delta.
+		//	g_ResolverData[player->EntIndex()].m_flFinalResolverYaw = pLagData->m_flLowerBodyYaw;
+
+		//	if (record->m_vecVelocity.Length() > 5.f)
+		//		g_ResolverData[player->EntIndex()].flNextBodyUpdate = player->m_flAnimationTime() + 0.22f;
+		//	else if (player->m_flAnimationTime() > g_ResolverData[player->EntIndex()].flNextBodyUpdate)
+		//		g_ResolverData[player->EntIndex()].flNextBodyUpdate = player->m_flAnimationTime() + 1.1f;
+		//}
+
+		//if (pLagData->m_sPPDUData.m_bLowerBodyYawDiffersFromRecord)
+		//{
+		//	record->m_angEyeAngles.y = player->m_angEyeAngles().y = record->m_flLowerBodyYawTarget;
+		//	g_ResolverData[player->EntIndex()].flNextBodyUpdate = player->m_flAnimationTime() + 1.1f;
+
+		//	// ↓ this possibly was causing the crash.
+		//	//g_ResolverData[player->EntIndex()].flNextBodyUpdate = pLagData->m_sPPDUData.m_flRecordedLBYUpdateTime;
+		//}
+
+		//if (Engine::g_ResolverData[player->EntIndex()].m_body != Engine::g_ResolverData[player->EntIndex()].m_old_body) {
+		//	//record->m_angEyeAngles.y = player->m_angEyeAngles().y = Engine::g_ResolverData[player->EntIndex()].m_body;
+
+		//	ILoggerEvent::Get()->PushEvent(XorStr("LBY UPDATED"), FloatColor(0.5f, 0.5f, 0.5f), true);
+
+		//	//g_ResolverData[player->EntIndex()].flNextBodyUpdate = player->m_flAnimationTime() + 1.1f;
+		//}
 
 		// lby updated on this tick
 		//if ( player->m_flAnimationTime() > g_ResolverData[player->EntIndex()].flNextBodyUpdate ) {

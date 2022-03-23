@@ -206,6 +206,8 @@ namespace Engine
 		if (!animState)
 			return;
 
+		/*pAnimationRecord->m_serverPlayerAnimState = animState;*/
+
 		// simulate animations
 		SimulateAnimations(pAnimationRecord, pPreviousAnimationRecord);
 
@@ -219,6 +221,48 @@ namespace Engine
 		g_BoneSetup.SetupBonesRebuild(player, nullptr, 128, 0x7FF00, player->m_flSimulationTime(), BoneSetupFlags::ForceInvalidateBoneCache | BoneSetupFlags::AttachmentHelper);
 
 		this->m_vecSimulationData.clear();
+	}
+
+	void ValidateServerDataWithRecords(C_CSPlayer* player)
+	{
+		Encrypted_t<Engine::C_EntityLagData> pLagData = Engine::LagCompensation::Get()->GetLagData(player->m_entIndex);
+		if (!pLagData.IsValid())
+			return;
+
+		if (!pLagData->m_sPPDUData.m_bShouldUseServerData)
+			return;
+
+		if (!pLagData.IsValid() || pLagData->m_History.empty() || pLagData->m_History.size() < 2)
+			return;
+
+		auto animData = AnimationSystem::Get()->GetAnimationData(pLagData->m_History.front().player->m_entIndex);
+		if (!animData)
+			return;
+
+		if (animData->m_AnimationRecord.empty() || animData->m_AnimationRecord.size() < 2)
+			return;
+
+		auto& ppduDataPointer = pLagData->m_sPPDUData;
+		auto animRecord = &animData->m_AnimationRecord.front();
+		/*auto record = pThis->m_History.front();*/
+
+		//if (ppduDataPointer.m_bAbsAnglesDiffersFromRecord)
+		//	record.m_angAngles = ppduDataPointer.m_angPostAbsAngles;
+
+		if (ppduDataPointer.m_bEyeAnglesDiffersFromRecord)
+		{
+			animRecord->m_angEyeAngles.x = ppduDataPointer.m_angPostEyeAngles.x;
+			animRecord->m_angEyeAngles.y = ppduDataPointer.m_angPostEyeAngles.y;
+		}
+
+		if (ppduDataPointer.m_bOriginDiffersFromRecord)
+			animRecord->m_vecOrigin = ppduDataPointer.m_vecPostNetOrigin;
+
+		if (ppduDataPointer.m_bShotTimeDiffersFromRecord)
+			animRecord->m_flShotTime = ppduDataPointer.m_flPostShotTime;
+
+		if (ppduDataPointer.m_bLowerBodyYawDiffersFromRecord)
+			animRecord->m_flLowerBodyYawTarget = ppduDataPointer.m_flPostLowerBodyYaw;
 	}
 
 	void C_AnimationData::Collect(C_CSPlayer* player) {
@@ -342,9 +386,12 @@ namespace Engine
 		record->m_flShotTime = 0.0f;
 		record->m_bFakeWalking = false;
 
+		//ValidateServerDataWithRecords(player);
+
 		if (previous_record.IsValid()) {
 			record->m_flChokeTime = pThis->m_flSimulationTime - pThis->m_flOldSimulationTime;
 			record->m_iChokeTicks = TIME_TO_TICKS(record->m_flChokeTime);
+			record->m_flOldLowerBodyYaw = previous_record->m_flLowerBodyYawTarget;
 		}
 		else {
 			record->m_flChokeTime = Interfaces::m_pGlobalVars->interval_per_tick;
@@ -355,7 +402,7 @@ namespace Engine
 			record->m_bIsInvalid = true;
 			record->m_vecVelocity.Init();
 			record->m_bIsShoting = false;
-			record->m_bTeleportDistance = false;
+			record->m_bTeleporting = false;
 
 			auto animstate = player->m_PlayerAnimState();
 			if (animstate)
@@ -508,7 +555,7 @@ namespace Engine
 			record->m_vecAnimationVelocity = previous_record->m_vecVelocity + accel;
 		}
 
-		record->m_bTeleportDistance = record->m_vecOrigin.DistanceSquared(previous_record->m_vecOrigin) > 4096.0f;
+		record->m_bTeleporting = record->m_vecOrigin.DistanceSquared(previous_record->m_vecOrigin) > 4096.0f;
 
 		C_SimulationInfo& data = pThis->m_vecSimulationData.emplace_back();
 		data.m_flTime = previous_record->m_flSimulationTime + Interfaces::m_pGlobalVars->interval_per_tick;
