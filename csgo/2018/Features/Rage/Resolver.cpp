@@ -316,19 +316,20 @@ namespace Engine {
 			// improved logic on lby check
 			// possibly only do this resolver if we have server data.
 			static float flLBYDifference = pLagData->m_sPPDUData.m_bShouldUseServerData ? pLagData->m_sPPDUData.m_flPostLowerBodyYaw - pLagData->m_sPPDUData.m_flPreLowerBodyYaw : record->m_flLowerBodyYawTarget - record->m_flOldLowerBodyYaw;
-			if (/*(flLBYDifference > 56.f && nMisses >= 3 || flLBYDifference > 36.f)*/flLBYDifference > 72.f && !bLBYIsFlicking && !record->m_bUnsafeVelocityTransition) // funny number
+			if (/*(flLBYDifference > 56.f && nMisses >= 3 || flLBYDifference > 36.f)*/flLBYDifference > 72.f && (!pLagData->m_bDidLBYBreakWithAHighDelta && !pLagData->m_bTriggeredBalanceAdjust) && !record->m_bUnsafeVelocityTransition) // funny number
 				bDetectingDistortion = true;
 		}
 
-		bool bModulatingLBY = bDetectingDistortion || bLBYIsFlicking || record->m_flLowerBodyYawTarget != record->m_flOldLowerBodyYaw || record->m_bUnsafeVelocityTransition;
+		bool bModulatingLBY = bDetectingDistortion || (pLagData->m_bDidLBYBreakWithAHighDelta && pLagData->m_bTriggeredBalanceAdjust) || record->m_flLowerBodyYawTarget != record->m_flOldLowerBodyYaw || record->m_bUnsafeVelocityTransition;
 
 		// the logic behind this should work.
 		// this could also be the reason everything is broken.
 		bool bInvalidatedLastMovingLBY = false;
 		if (!bInvalidatedLastMovingLBY)
 		{
-			if (data.m_bCollectedValidMoveData && IsLastMoveValid(record, g_ResolverData[player->EntIndex()].m_sMoveData.m_flLowerBodyYawTarget) && bModulatingLBY)
-				bInvalidatedLastMovingLBY = true;
+			if (data.m_bCollectedValidMoveData && IsLastMoveValid(record, g_ResolverData[player->EntIndex()].m_sMoveData.m_flLowerBodyYawTarget))
+				if (bModulatingLBY || g_ResolverData[player->EntIndex()].m_sMoveData.m_flLowerBodyYawTarget != pLagData->m_flLowerBodyYaw || g_ResolverData[player->EntIndex()].flNextBodyUpdate == player->m_flAnimationTime() + 0.22f)
+					bInvalidatedLastMovingLBY = true;
 		}
 		else if (data.m_bCollectedValidMoveData && !IsLastMoveValid(record, g_ResolverData[player->EntIndex()].m_sMoveData.m_flLowerBodyYawTarget) && bInvalidatedLastMovingLBY)
 			bInvalidatedLastMovingLBY = false;
@@ -337,19 +338,28 @@ namespace Engine {
 
 		// we have valid move data but we can't freestand them.
 		// there's a possibility that our last moving will be invalid if the target starts distorting, see if that is the case eventually.
-		if (data.m_bCollectedValidMoveData && IsLastMoveValid(record, g_ResolverData[player->EntIndex()].m_sMoveData.m_flLowerBodyYawTarget) && !bInvalidatedLastMovingLBY && nMisses < 1) {
-			g_ResolverData[player->EntIndex()].m_sResolverMode = XorStr("LM");
-			g_ResolverData[player->EntIndex()].m_flFinalResolverYaw = g_ResolverData[player->EntIndex()].m_sMoveData.m_flLowerBodyYawTarget;
-			return;
+		if (data.m_bCollectedValidMoveData && IsLastMoveValid(record, g_ResolverData[player->EntIndex()].m_sMoveData.m_flLowerBodyYawTarget) && !bInvalidatedLastMovingLBY && nMisses < 1) 
+		{
+			if (pLagData->m_bHitLastMove)
+			{
+				g_ResolverData[player->EntIndex()].m_sResolverMode = XorStr("LM");
+				g_ResolverData[player->EntIndex()].m_flFinalResolverYaw = pLagData->m_flLastMoveYaw.front();
+			}
+			else
+			{
+				g_ResolverData[player->EntIndex()].m_sResolverMode = XorStr("LM");
+				g_ResolverData[player->EntIndex()].m_flFinalResolverYaw = g_ResolverData[player->EntIndex()].m_sMoveData.m_flLowerBodyYawTarget;
+			}
 		}
 
 		// distortion resolver; or at least hopefully a distortion resolver.
 		// the last move check possibly might not needed
 		// removed the last moving check as distortion should invalidate last moving as it updates the lby.
-		else if (bDetectingDistortion ) //&& g_Vars.rage.distortion_resolver.enabled
+		else if (bDetectingDistortion && g_Vars.rage.distortion_resolver.enabled)
 		{
 			g_ResolverData[player->EntIndex()].m_sResolverMode = XorStr("D");
-			switch (nMisses % 2) {
+			switch (nMisses % 2) 
+			{
 			case 0: // lby difference
 				g_ResolverData[player->EntIndex()].m_flFinalResolverYaw = record->m_flLowerBodyYawTarget - record->m_flOldLowerBodyYaw;
 				break;
@@ -362,32 +372,48 @@ namespace Engine {
 			}
 		}
 
+		// lby is not being modulated; force that bitch
+		else if (!bModulatingLBY)
+		{
+			g_ResolverData[player->EntIndex()].m_sResolverMode = XorStr("N");
+			g_ResolverData[player->EntIndex()].m_flFinalResolverYaw = record->m_flLowerBodyYawTarget;
+			return;
+		}
+
+		// this check might be dogass.
+		else if (bModulatingLBY && !bDetectingDistortion)
+		{
+			g_ResolverData[player->EntIndex()].m_sResolverMode = XorStr("P");
+			g_ResolverData[player->EntIndex()].m_flFinalResolverYaw = record->m_flOldLowerBodyYaw;
+			return;
+		}
+
 		// only force this if we don't have a valid last move or if our lby is being modulated.
 		// commented for now.
-		//else if (data.m_bCollectedFreestandData && pLagData->DetectAutoDirerction(pLagData, player) && (bModulatingLBY || data.m_bCollectedValidMoveData && !IsLastMoveValid(record, g_ResolverData[player->EntIndex()].m_sMoveData.m_flLowerBodyYawTarget))) {
-		//	g_ResolverData[player->EntIndex()].m_sResolverMode = XorStr("FB");
-		//	switch (nMisses % 4) {
-		//	case 0:
-		//		g_ResolverData[player->EntIndex()].m_flFinalResolverYaw = pLagData->m_flDirection;
-		//		break;
+		else if (data.m_bCollectedFreestandData && pLagData->DetectAutoDirerction(pLagData, player) && (/*bModulatingLBY ||*/ data.m_bCollectedValidMoveData && !IsLastMoveValid(record, g_ResolverData[player->EntIndex()].m_sMoveData.m_flLowerBodyYawTarget))) {
+			g_ResolverData[player->EntIndex()].m_sResolverMode = XorStr("F");
+			switch (nMisses % 4) {
+			case 0:
+				g_ResolverData[player->EntIndex()].m_flFinalResolverYaw = pLagData->m_flDirection;
+				break;
 
-		//	case 1:
-		//		g_ResolverData[player->EntIndex()].m_flFinalResolverYaw = g_ResolverData[player->EntIndex()].m_flBestYaw;
-		//		break;
+			case 1:
+				g_ResolverData[player->EntIndex()].m_flFinalResolverYaw = g_ResolverData[player->EntIndex()].m_flBestYaw;
+				break;
 
-		//	case 2:
-		//		g_ResolverData[player->EntIndex()].m_flFinalResolverYaw = angAway.y + 70.f;
-		//		break;
+			case 2:
+				g_ResolverData[player->EntIndex()].m_flFinalResolverYaw = angAway.y + 70.f;
+				break;
 
-		//	case 3:
-		//		g_ResolverData[player->EntIndex()].m_flFinalResolverYaw = angAway.y - 70.f;
-		//		break;
+			case 3:
+				g_ResolverData[player->EntIndex()].m_flFinalResolverYaw = angAway.y - 70.f;
+				break;
 
-		//	case 4:
-		//		g_ResolverData[player->EntIndex()].m_flFinalResolverYaw = angAway.y + 180.f;
-		//		break;
-		//	}
-		//}
+			case 4:
+				g_ResolverData[player->EntIndex()].m_flFinalResolverYaw = angAway.y + 180.f;
+				break;
+			}
+		}
 	}
 
 	void CResolver::ResolveAir(C_CSPlayer* player, C_AnimationRecord* record) {

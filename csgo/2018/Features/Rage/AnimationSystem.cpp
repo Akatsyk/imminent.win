@@ -386,6 +386,8 @@ namespace Engine
 		record->m_flShotTime = 0.0f;
 		record->m_bFakeWalking = false;
 
+		// this might be better off commented.
+		// it is as it is messing with the accuracy of our backtrack records.
 		//ValidateServerDataWithRecords(player);
 
 		if (previous_record.IsValid()) {
@@ -403,6 +405,7 @@ namespace Engine
 			record->m_vecVelocity.Init();
 			record->m_bIsShoting = false;
 			record->m_bTeleporting = false;
+			record->m_flOldLowerBodyYaw = record->m_flLowerBodyYawTarget; // set this to our old lower body yaw so it doesn't == null.
 
 			auto animstate = player->m_PlayerAnimState();
 			if (animstate)

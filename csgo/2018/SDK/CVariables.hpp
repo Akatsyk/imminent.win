@@ -657,6 +657,7 @@ public:
 	config_keybind(prefer_head);
 	config_keybind(prefer_safe);
 	config_keybind(override_reoslver);
+	config_keybind(distortion_resolver);
 	config_keybind(override_reoslver_lock);
 	config_option(bool, override_resolver_flicks, false);
 

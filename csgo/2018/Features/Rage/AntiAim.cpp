@@ -24,7 +24,7 @@ int GetFPS()
 	auto now = high_resolution_clock::now();
 	static auto last = high_resolution_clock::now();
 	count++;
-	 
+
 	if (duration_cast<milliseconds>(now - last).count() > 1000) {
 		fps = count;
 		count = 0;
@@ -44,8 +44,6 @@ namespace Interfaces
 	private:
 		virtual float GetAntiAimX(Encrypted_t<CVariables::ANTIAIM_STATE> settings);
 		virtual float GetAntiAimY(Encrypted_t<CVariables::ANTIAIM_STATE> settings, Encrypted_t<CUserCmd> cmd);
-		virtual float BaseAngle();
-
 		virtual void Distort(Encrypted_t<CUserCmd> cmd, bool fakeYaw);
 
 		enum class Directions : int {
@@ -74,9 +72,9 @@ namespace Interfaces
 		if (!LocalPlayer || LocalPlayer->IsDead())
 			return false;
 
-		if (!(g_Vars.antiaim.bomb_activity && g_Vars.globals.BobmActivityIndex == LocalPlayer->EntIndex()) || !g_Vars.antiaim.bomb_activity)
-			if ((cmd->buttons & IN_USE) && LocalPlayer->m_bIsDefusing())
-				return false;
+		//if (!(g_Vars.antiaim.bomb_activity && g_Vars.globals.BobmActivityIndex == LocalPlayer->EntIndex()) || !g_Vars.antiaim.bomb_activity)
+		if ((cmd->buttons & IN_USE) || LocalPlayer->m_bIsDefusing())
+			return false;
 
 		if (LocalPlayer->m_MoveType() == MOVETYPE_NOCLIP)
 			return false;
@@ -243,17 +241,17 @@ namespace Interfaces
 			case 1: // default
 				cmd->viewangles.y = Math::AngleNormalize(flYaw + 180 + random(generator));
 				break;
-				
+
 			case 2: // relative
 				cmd->viewangles.y = Math::AngleNormalize(flYaw + 180 + settings->relativeamount);
 				break;
-			
+
 			case 3: // jitter
 				cmd->viewangles.y = Math::AngleNormalize(flYaw + 180 + randomjew(generator));
 				break;
-			
+
 			case 4: // rotate
-				cmd->viewangles.y = std::fmod(Interfaces::m_pGlobalVars->curtime * (settings->rotationspeed * 100.f), settings->rotationrange * 360.f); 
+				cmd->viewangles.y = std::fmod(Interfaces::m_pGlobalVars->curtime * (settings->rotationspeed * 100.f), settings->rotationrange * 360.f);
 				break;
 
 			case 5: // really random
@@ -261,40 +259,6 @@ namespace Interfaces
 				break;
 			default: [[fallthrough]];
 			}
-
-			//switch (settings->fakeyaw)
-			//{
-			//	// opposite.
-			//case 1: cmd->viewangles.y = Math::AngleNormalize(flYaw + 180); break;
-
-			//	// jitter.
-			//case 2:
-			//{
-			//	std::uniform_int_distribution random(-settings->jitterrange, settings->jitterrange);
-			//	cmd->viewangles.y = Math::AngleNormalize(flYaw + 180 + random(generator));
-			//	break;
-			//}
-
-			//// random jitter.
-			//case 3:
-			//{
-			//	std::uniform_int_distribution random(-90, 90);
-			//	cmd->viewangles.y = Math::AngleNormalize(flYaw + 180 + random(generator));
-			//	break;
-			//}
-
-			//// spin.
-			//case 4: cmd->viewangles.y = std::fmod(Interfaces::m_pGlobalVars->curtime * (settings->rotationspeed * 100.f), settings->rotationrange * 360.f); break;
-
-			//	// fuck spin.
-			//case 5:
-			//{
-			//	std::uniform_int_distribution random(-90, 90);
-			//	cmd->viewangles.y = std::fmod(Interfaces::m_pGlobalVars->curtime * (settings->lagrotationspeed * 100.f), settings->lagrotationrange * 360.f) + random(generator);
-			//	break;
-			//}
-			//default: [[fallthrough]];
-			//}
 		}
 
 		static bool bNegative = false;
@@ -311,38 +275,147 @@ namespace Interfaces
 			}
 		}
 		else {
-			if (!Interfaces::m_pClientState->m_nChokedCommands()
-				&& Interfaces::m_pGlobalVars->curtime >= g_Vars.globals.m_flBodyPred
-				&& LocalPlayer->m_fFlags() & FL_ONGROUND && g_Vars.globals.m_bUpdate) {
-				// fake yaw.
-				switch (settings->yaw) {
-				case 1: // dynamic
-					bSwitch ? cmd->viewangles.y += 87.f : cmd->viewangles.y -= 92.f;
-					bSwitch = !bSwitch;
-					break;
-				case 2: // sway 
-					bNegative ? cmd->viewangles.y += 117.f : cmd->viewangles.y -= 107.f;
-					break;
-				case 3: // static		
-					bSwap ? cmd->viewangles.y += g_Vars.antiaim.break_lby : cmd->viewangles.y -= g_Vars.antiaim.break_lby;
-					break;
-				default:
+			if (settings->twist > 0) {
+				switch (settings->twist)
+				{
+				case 1:
+				{
+					if (!g_Vars.antiaim.stahlhelm && !Interfaces::m_pClientState->m_nChokedCommands()
+						&& LocalPlayer->m_fFlags() & FL_ONGROUND && g_Vars.globals.m_bUpdate
+						&& Interfaces::m_pGlobalVars->curtime >= g_Vars.globals.m_flBodyPred - 0.152f) {
+						switch (settings->yaw) {
+						case 1: // dynamic
+							bSwitch ? cmd->viewangles.y += 87.f : cmd->viewangles.y -= 92.f;
+							bSwitch = !bSwitch;
+							break;
+						case 2: // sway 
+							bNegative ? cmd->viewangles.y += 117.f : cmd->viewangles.y -= 107.f;
+							break;
+						case 3: // static		
+							bSwap ? cmd->viewangles.y += g_Vars.antiaim.break_lby : cmd->viewangles.y -= g_Vars.antiaim.break_lby;
+							break;
+						default:
+							break;
+						}
+
+						if (g_Vars.antiaim.funnymode)
+							cmd->viewangles.z = 45.f;
+					}
+
+					if (!g_Vars.antiaim.stahlhelm && !Interfaces::m_pClientState->m_nChokedCommands()
+						&& Interfaces::m_pGlobalVars->curtime >= g_Vars.globals.m_flBodyPred
+						&& LocalPlayer->m_fFlags() & FL_ONGROUND && g_Vars.globals.m_bUpdate) {
+						// fake yaw.
+						switch (settings->yaw) {
+						case 1: // dynamic
+							bSwitch ? cmd->viewangles.y += 87.f : cmd->viewangles.y -= 92.f;
+							bSwitch = !bSwitch;
+							break;
+						case 2: // sway 
+							bNegative ? cmd->viewangles.y += 117.f : cmd->viewangles.y -= 107.f;
+							break;
+						case 3: // static		
+							bSwap ? cmd->viewangles.y += g_Vars.antiaim.break_lby : cmd->viewangles.y -= g_Vars.antiaim.break_lby;
+							break;
+						default:
+							break;
+						}
+
+						if (g_Vars.antiaim.funnymode)
+							cmd->viewangles.z = 45.f;
+
+						m_flLowerBodyUpdateYaw = LocalPlayer->m_flLowerBodyYawTarget();
+					}
+
+					if (!g_Vars.antiaim.stahlhelm && !Interfaces::m_pClientState->m_nChokedCommands()
+						&& LocalPlayer->m_fFlags() & FL_ONGROUND && g_Vars.globals.m_bUpdate
+						&& Interfaces::m_pGlobalVars->curtime >= g_Vars.globals.m_flBodyPred + 0.152f) {
+						switch (settings->yaw) {
+						case 1: // dynamic
+							bSwitch ? cmd->viewangles.y += 87.f : cmd->viewangles.y -= 92.f;
+							bSwitch = !bSwitch;
+							break;
+						case 2: // sway 
+							bNegative ? cmd->viewangles.y += 117.f : cmd->viewangles.y -= 107.f;
+							break;
+						case 3: // static		
+							bSwap ? cmd->viewangles.y += g_Vars.antiaim.break_lby : cmd->viewangles.y -= g_Vars.antiaim.break_lby;
+							break;
+						default:
+							break;
+						}
+
+						if (g_Vars.antiaim.funnymode)
+							cmd->viewangles.z = 45.f;
+					}
 					break;
 				}
+				case 2:
+				{
+					// possibly for these two make them == instead of >= to curtime.
+					if (!g_Vars.antiaim.stahlhelm && !Interfaces::m_pClientState->m_nChokedCommands()
+						&& LocalPlayer->m_fFlags() & FL_ONGROUND && g_Vars.globals.m_bUpdate
+						&& Interfaces::m_pGlobalVars->curtime >= g_Vars.globals.m_flBodyPred - TICKS_TO_TIME(1)) {
 
-				if (g_Vars.antiaim.funnymode)
-					cmd->viewangles.z = 45.f;
+						float addAngle = GetFPS() >= (TIME_TO_TICKS(1.f) * 0.5f) ?
+							(2.9 * std::max(Interfaces::FakeLag::Get()->GetMaxFakelagChoke(), g_Vars.globals.m_iPreviouslyChokedTicks) + 100) : 145.f;
 
-				m_flLowerBodyUpdateYaw = LocalPlayer->m_flLowerBodyYawTarget();
+						cmd->viewangles.y += g_Vars.antiaim.break_lby + addAngle;
+
+						if (g_Vars.antiaim.funnymode)
+							cmd->viewangles.z = 45.f;
+					}
+
+					if (!g_Vars.antiaim.stahlhelm && !Interfaces::m_pClientState->m_nChokedCommands()
+						&& Interfaces::m_pGlobalVars->curtime >= g_Vars.globals.m_flBodyPred
+						&& LocalPlayer->m_fFlags() & FL_ONGROUND && g_Vars.globals.m_bUpdate) {
+						// fake yaw.
+						switch (settings->yaw) {
+						case 1: // dynamic
+							bSwitch ? cmd->viewangles.y += 87.f : cmd->viewangles.y -= 92.f;
+							bSwitch = !bSwitch;
+							break;
+						case 2: // sway 
+							bNegative ? cmd->viewangles.y += 117.f : cmd->viewangles.y -= 107.f;
+							break;
+						case 3: // static		
+							bSwap ? cmd->viewangles.y += g_Vars.antiaim.break_lby : cmd->viewangles.y -= g_Vars.antiaim.break_lby;
+							break;
+						default:
+							break;
+						}
+
+						if (g_Vars.antiaim.funnymode)
+							cmd->viewangles.z = 45.f;
+
+						m_flLowerBodyUpdateYaw = LocalPlayer->m_flLowerBodyYawTarget();
+					}
+
+					if (!g_Vars.antiaim.stahlhelm && !Interfaces::m_pClientState->m_nChokedCommands()
+						&& LocalPlayer->m_fFlags() & FL_ONGROUND && g_Vars.globals.m_bUpdate
+						&& Interfaces::m_pGlobalVars->curtime >= g_Vars.globals.m_flBodyPred + TICKS_TO_TIME(1)) {
+
+						float addAngle = GetFPS() >= (TIME_TO_TICKS(1.f) * 0.5f) ?
+							(2.9 * std::max(Interfaces::FakeLag::Get()->GetMaxFakelagChoke(), g_Vars.globals.m_iPreviouslyChokedTicks) + 100) : 145.f;
+
+						cmd->viewangles.y -= g_Vars.antiaim.break_lby + addAngle;
+
+						if (g_Vars.antiaim.funnymode)
+							cmd->viewangles.z = 45.f;
+					}
+					break;
+				}
+				default: [[fallthrough]];
+				}
 			}
 
-			switch (settings->twist)
+			// just normal lby breaker
+			else
 			{
-			case 1:
-			{
-				if (!Interfaces::m_pClientState->m_nChokedCommands()
-					&& LocalPlayer->m_fFlags() & FL_ONGROUND && g_Vars.globals.m_bUpdate
-					&& Interfaces::m_pGlobalVars->curtime >= g_Vars.globals.m_flBodyPred - 0.152f) {
+				if (!g_Vars.antiaim.stahlhelm && !Interfaces::m_pClientState->m_nChokedCommands()
+					&& Interfaces::m_pGlobalVars->curtime >= g_Vars.globals.m_flBodyPred
+					&& LocalPlayer->m_fFlags() & FL_ONGROUND && g_Vars.globals.m_bUpdate) {
+					// fake yaw.
 					switch (settings->yaw) {
 					case 1: // dynamic
 						bSwitch ? cmd->viewangles.y += 87.f : cmd->viewangles.y -= 92.f;
@@ -360,62 +433,9 @@ namespace Interfaces
 
 					if (g_Vars.antiaim.funnymode)
 						cmd->viewangles.z = 45.f;
+
+					m_flLowerBodyUpdateYaw = LocalPlayer->m_flLowerBodyYawTarget();
 				}
-
-				if (!Interfaces::m_pClientState->m_nChokedCommands()
-					&& LocalPlayer->m_fFlags() & FL_ONGROUND && g_Vars.globals.m_bUpdate
-					&& Interfaces::m_pGlobalVars->curtime >= g_Vars.globals.m_flBodyPred + 0.152f) {
-					switch (settings->yaw) {
-					case 1: // dynamic
-						bSwitch ? cmd->viewangles.y += 87.f : cmd->viewangles.y -= 92.f;
-						bSwitch = !bSwitch;
-						break;
-					case 2: // sway 
-						bNegative ? cmd->viewangles.y += 117.f : cmd->viewangles.y -= 107.f;
-						break;
-					case 3: // static		
-						bSwap ? cmd->viewangles.y += g_Vars.antiaim.break_lby : cmd->viewangles.y -= g_Vars.antiaim.break_lby;
-						break;
-					default:
-						break;
-					}
-
-					if (g_Vars.antiaim.funnymode)
-						cmd->viewangles.z = 45.f;
-				}
-				break;
-			}
-			case 2:
-			{
-				// possibly for these two make them == instead of >= to curtime.
-				if (!Interfaces::m_pClientState->m_nChokedCommands()
-					&& LocalPlayer->m_fFlags() & FL_ONGROUND && g_Vars.globals.m_bUpdate
-					&& Interfaces::m_pGlobalVars->curtime >= g_Vars.globals.m_flBodyPred - TICKS_TO_TIME(1)) {
-
-					float addAngle = GetFPS() >= (TIME_TO_TICKS(1.f) * 0.5f) ?
-						(2.9 * std::max(Interfaces::FakeLag::Get()->GetMaxFakelagChoke(), g_Vars.globals.m_iPreviouslyChokedTicks) + 100) : 145.f;
-
-					cmd->viewangles.y -= g_Vars.antiaim.break_lby + addAngle;
-
-					if (g_Vars.antiaim.funnymode)
-						cmd->viewangles.z = 45.f;
-				}
-
-				if (!Interfaces::m_pClientState->m_nChokedCommands()
-					&& LocalPlayer->m_fFlags() & FL_ONGROUND && g_Vars.globals.m_bUpdate
-					&& Interfaces::m_pGlobalVars->curtime >= g_Vars.globals.m_flBodyPred + TICKS_TO_TIME(1)) {
-
-					float addAngle = GetFPS() >= (TIME_TO_TICKS(1.f) * 0.5f) ?
-						(2.9 * std::max(Interfaces::FakeLag::Get()->GetMaxFakelagChoke(), g_Vars.globals.m_iPreviouslyChokedTicks) + 100) : 145.f;
-
-					cmd->viewangles.y -= g_Vars.antiaim.break_lby + addAngle;
-
-					if (g_Vars.antiaim.funnymode)
-						cmd->viewangles.z = 45.f;
-				}
-				break;
-			}
-			default: [[fallthrough]];
 			}
 		}
 	}
@@ -597,73 +617,184 @@ namespace Interfaces
 		return false;
 	}
 
-	float C_AntiAimbot::BaseAngle() {
-		bool bUsingManualAA = g_Vars.globals.manual_aa != -1;
-
-		if (bUsingManualAA) {
-			switch (g_Vars.globals.manual_aa) {
-			case 0:
-				return 270.f;
-			case 1:
-				return 360.f; // or 0 :)
-			case 2:
-				return 90.f;
-			}
-		}
-		else if (g_Vars.antiaim.stahlhelm) {
-			// p100 anti aim exploit
-		}
-		//else if (g_Vars.antiaim.stahlhelm) {
-			// make freestanding / edge here
-		//}
-		else {
-			auto& settings = g_Vars.antiaim_stand;
-			std::uniform_int_distribution Random(-settings.RandomRange, settings.RandomRange);
-
-			if (g_Vars.antiaim_stand.base_yaw == 5) {
-				return Math::AngleNormalize(Random(generator));
-			}
-			else
-				return 0.f;
-		}
-	}
-
 	float C_AntiAimbot::GetAntiAimY(Encrypted_t<CVariables::ANTIAIM_STATE> settings, Encrypted_t<CUserCmd> cmd) {
 		auto local = C_CSPlayer::GetLocalPlayer();
 		if (!local || local->IsDead())
 			return FLT_MAX;
 
-		float flBaseAngle = BaseAngle();
-		float flReturnAngle = flBaseAngle;
+		float flViewAngle = cmd->viewangles.y;
+		auto GetTargetYaw = [local, flViewAngle]() -> float
+		{
+			float_t flBestDistance = FLT_MAX;
 
-		static int Ticks = 0;
+			C_CSPlayer* pFinalPlayer = nullptr;
+			for (int32_t i = 1; i < 65; i++)
+			{
+				C_CSPlayer* pPlayer = C_CSPlayer::GetPlayerByIndex(i);
+				if (!pPlayer || !pPlayer->IsPlayer() || pPlayer->IsDead() || pPlayer->m_iTeamNum() == local->m_iTeamNum() || pPlayer->IsDormant())
+					continue;
 
-		std::uniform_int_distribution OneEightyJitterRandom(-settings->OneEightyJitterRange, settings->OneEightyJitterRange);
-		std::uniform_int_distribution JitterRandom(-settings->JitterRange, settings->JitterRange);
+				if (pPlayer->m_fFlags() & FL_FROZEN)
+					continue;
 
-		// "Off" "180" "180 Jitter" "Jitter" "Spin" "Random" "Static" "180z"
+				float_t flDistanceToPlayer = local->m_vecOrigin().Distance(pPlayer->m_vecOrigin());
+				if (flDistanceToPlayer > flBestDistance)
+					continue;
 
-		switch (settings->base_yaw) {
-		case 2:
-			flReturnAngle += Math::AngleNormalize(OneEightyJitterRandom(generator));
-			break;
-		case 3:
-			flReturnAngle += Math::AngleNormalize(JitterRandom(generator));
-			break;
-		case 4:
-			flReturnAngle = std::fmod(Interfaces::m_pGlobalVars->curtime * (settings->RotationSpeed * 10.f), settings->RotationRange * 360.f);
-			break;
-		case 7:
-			flReturnAngle -= Ticks;
+				if (flDistanceToPlayer > 1250.0f)
+					continue;
 
-			Ticks += 2;
+				flBestDistance = flDistanceToPlayer;
+				pFinalPlayer = pPlayer;
+			}
 
-			if (Ticks > 240)
-				Ticks = 120;
-			break;
+			if (!pFinalPlayer)
+				return flViewAngle + 180.0f;
+
+			return Math::CalcAngle(local->GetAbsOrigin() + local->m_vecViewOffset(), pFinalPlayer->GetAbsOrigin()).yaw + 180.0f;
+		};
+
+		float flRetValue = (settings->at_targets ? GetTargetYaw() : flViewAngle) + 180.f;
+
+		bool bUsingManualAA = g_Vars.globals.manual_aa >= 0;
+		if (bUsingManualAA) {
+			switch (g_Vars.globals.manual_aa) {
+			case 0:
+				flRetValue = flViewAngle + 90.f;
+				break;
+			case 1:
+				flRetValue = flViewAngle + 180.f;
+				break;
+			case 2:
+				flRetValue = flViewAngle - 90.f;
+				break;
+			}
+			goto RETURN;
 		}
 
-		return flReturnAngle;
+		bool bStahlhelmEnabled = false, bFreestandingEnabled = false;
+
+		QAngle returnAngle;
+		if (g_Vars.antiaim.stahlhelm && DoEdgeAntiAim(local, returnAngle) && !bUsingManualAA)
+		{
+			bStahlhelmEnabled = true;
+			flRetValue = returnAngle.y;
+			goto RETURN;
+		}
+
+		// this is inside of an else because iron helmet takes priority over freestanding.
+		else
+		{
+			bStahlhelmEnabled = false;
+
+			if (local->m_vecVelocity().Length() > 3.f && g_Vars.antiaim.freestand_move && !bUsingManualAA)
+			{
+				const C_AntiAimbot::Directions Direction = HandleDirection(cmd);
+				switch (Direction) {
+				case Directions::YAW_BACK:
+					// backwards yaw.
+					bFreestandingEnabled = true;
+					flRetValue = flViewAngle + 180.f;
+					goto RETURN;
+					break; // we m ight not need this break after the goto return.
+				case Directions::YAW_LEFT:
+					// left yaw.
+					bFreestandingEnabled = true;
+					flRetValue = flViewAngle + 90.f;
+					goto RETURN;
+					break; // we m ight not need this break after the goto return.
+				case Directions::YAW_RIGHT:
+					// right yaw.
+					bFreestandingEnabled = true;
+					flRetValue = flViewAngle - 90.f;
+					goto RETURN;
+					break; // we m ight not need this break after the goto return.
+				case Directions::YAW_NONE:
+					// break because we already have an angle!.
+					bFreestandingEnabled = false;
+					break;
+				}
+			}
+
+			if (local->m_vecVelocity().Length() < 3.f && g_Vars.antiaim.freestand_stand && !bUsingManualAA)
+			{
+				const C_AntiAimbot::Directions Direction = HandleDirection(cmd);
+				switch (Direction) {
+				case Directions::YAW_BACK:
+					// backwards yaw.
+					bFreestandingEnabled = true;
+					flRetValue = flViewAngle + 180.f;
+					goto RETURN;
+					break; // we m ight not need this break after the goto return.
+				case Directions::YAW_LEFT:
+					// left yaw.
+					bFreestandingEnabled = true;
+					flRetValue = flViewAngle + 90.f;
+					goto RETURN;
+					break; // we m ight not need this break after the goto return.
+				case Directions::YAW_RIGHT:
+					// right yaw.
+					bFreestandingEnabled = true;
+					flRetValue = flViewAngle - 90.f;
+					goto RETURN;
+					break; // we m ight not need this break after the goto return.
+				case Directions::YAW_NONE:
+					// break because we already have an angle!.
+					bFreestandingEnabled = false;
+					break;
+				}
+			}
+		}
+
+		static int Ticks = 0;
+		if (!bFreestandingEnabled && !bStahlhelmEnabled && !bUsingManualAA)
+		{
+			std::uniform_int_distribution randomnigger(-settings->realjitterrange, settings->realjitterrange);
+			std::uniform_int_distribution randomcockhead(-settings->randomrange, settings->randomrange);
+			bool bJitterSwitch = false;
+
+			switch (settings->base_yaw)
+			{
+			case 1: // backwards.
+				flRetValue = settings->at_targets ? GetTargetYaw() : flViewAngle + 180.f;
+				break;
+			case 2: // jitter
+				flRetValue = bJitterSwitch ? (settings->at_targets ? GetTargetYaw() : flViewAngle) + -settings->realjitterrange : (settings->at_targets ? GetTargetYaw() : flViewAngle) + settings->realjitterrange;
+				bJitterSwitch = !bJitterSwitch;
+				break;
+			case 3: // spin
+				flRetValue = std::fmod(Interfaces::m_pGlobalVars->curtime * (settings->RotationSpeed * 100.f), settings->RotationRange * 360.f); break;
+				break;
+			case 4: // random
+				flRetValue = Math::AngleNormalize((settings->at_targets ? GetTargetYaw() : flViewAngle) + randomcockhead(generator));
+				break;
+			case 5: // static
+				flRetValue = Math::AngleNormalize((settings->at_targets ? GetTargetYaw() : flViewAngle) + settings->staticangle);
+				break;
+			case 6: // 180z
+				flRetValue -= Ticks;
+				Ticks += 2;
+
+				if (Ticks > 240)
+					Ticks = 120;
+				break;
+			default: [[fallthrough]];
+			}
+
+			goto RETURN;
+		}
+
+	RETURN:
+		static int iUpdates;
+		if (iUpdates > pow(10, 10))
+			iUpdates = 1;
+
+		if (!g_Vars.globals.m_bGround) {
+			flRetValue = (settings->at_targets ? GetTargetYaw() : flViewAngle) + (iUpdates % 2 ? -155.f : 155.f);
+			++iUpdates;
+		}
+
+		return flRetValue;
 	}
 
 	void C_AntiAimbot::Distort(Encrypted_t<CUserCmd> cmd, bool usingFakeYaw) {
@@ -739,7 +870,7 @@ namespace Interfaces
 					float min = 0;
 					float speed = 100 - (g_Vars.antiaim.distort_spd);
 
-					cmd->viewangles.y += + 180 + std::min(std::max(floor(abs(cos(Interfaces::m_pGlobalVars->curtime / speed * 100)) * max), min), max) - max / 2;
+					cmd->viewangles.y += +180 + std::min(std::max(floor(abs(cos(Interfaces::m_pGlobalVars->curtime / speed * 100)) * max), min), max) - max / 2;
 					return;
 				}
 
@@ -1108,8 +1239,8 @@ namespace Interfaces
 			Distort( cmd );
 		}
 		else {
-			// make our fake 180 degrees away from our real, and let's add a jitter 
-			// ranging from -90 to 90 to make shit even fuckier 
+			// make our fake 180 degrees away from our real, and let's add a jitter
+			// ranging from -90 to 90 to make shit even fuckier
 			std::uniform_int_distribution random( -90, 90 );
 
 			cmd->viewangles.y = Math::AngleNormalize( flYaw + 180 + random( generator ) );
@@ -1147,7 +1278,7 @@ namespace Interfaces
 				bSwitch ? cmd->viewangles.y += 110.f : cmd->viewangles.y -= 110.f;
 				bSwitch = !bSwitch;
 				break;
-			case 2: // static		
+			case 2: // static
 				bSwap ? cmd->viewangles.y += g_Vars.antiaim.break_lby : cmd->viewangles.y -= g_Vars.antiaim.break_lby;
 				break;
 			default:
@@ -1164,7 +1295,7 @@ namespace Interfaces
 			if (g_Vars.antiaim.funny_mode)
 				cmd->viewangles.z = 45.f;
 
-			float addAngle = GetFPS() >= (TIME_TO_TICKS(1.f) * 0.5f) ? 
+			float addAngle = GetFPS() >= (TIME_TO_TICKS(1.f) * 0.5f) ?
 				(2.9 * std::max(Interfaces::FakeLag::Get()->GetMaxFakelagChoke(), g_Vars.globals.m_iPreviouslyChokedTicks) + 100) : 145.f;
 
 			cmd->viewangles.y += g_Vars.antiaim.break_lby + addAngle;
@@ -1175,7 +1306,7 @@ namespace Interfaces
 			if (g_Vars.antiaim.funny_mode)
 				cmd->viewangles.z = 45.f;
 
-			float addAngle = GetFPS() >= (TIME_TO_TICKS(1.f) * 0.5f) ? 
+			float addAngle = GetFPS() >= (TIME_TO_TICKS(1.f) * 0.5f) ?
 				(2.9 * std::max(Interfaces::FakeLag::Get()->GetMaxFakelagChoke(), g_Vars.globals.m_iPreviouslyChokedTicks) + 100) : 145.f;
 
 			cmd->viewangles.y += g_Vars.antiaim.break_lby + addAngle;
@@ -1208,7 +1339,7 @@ namespace Interfaces
 		switch ( settings->pitch ) {
 		case 1: // down
 			return 89.f;
-		case 2: // up 
+		case 2: // up
 			return -89.f;
 		case 3: // zero
 			return 0.f;
@@ -1303,7 +1434,7 @@ namespace Interfaces
 		//			break;
 		//		}
 		//	}
-		//}		
+		//}
 
 		//if (!run_freestand) {
 

@@ -471,29 +471,34 @@ namespace Engine
 
 		// same goes with this reese, this would more than likely help our last moving resolver
 		// it might be better to just fucking test it though, who knows
-		//auto lagData = Engine::LagCompensation::Get()->GetLagData(player->m_entIndex);
-		//if (lagData.IsValid()) {
-		//	switch (snapshot.ResolverType) {
-		//	case EResolverModes::RESOLVE_STAND1:
-		//		// predicting updates or freestanding them.
-		//		if (!Engine::g_ResolverData[player->m_entIndex].m_bPredictingUpdates && !Engine::g_ResolverData[player->m_entIndex].m_bCollectedFreestandData)
-		//			break;
+		auto lagData = Engine::LagCompensation::Get()->GetLagData(player->m_entIndex);
+		if (lagData.IsValid()) {
+			switch (snapshot.ResolverType) {
+			case EResolverModes::RESOLVE_STAND1:
+				// predicting updates or freestanding them.
+				if (Engine::g_ResolverData[player->m_entIndex].m_bPredictingUpdates || Engine::g_ResolverData[player->m_entIndex].m_bCollectedFreestandData)
+					break;
 
-		//		// valid move data.
-		//		if (Engine::g_ResolverData[player->m_entIndex].m_bCollectedValidMoveData) {
-		//			// clear any past yaws.
-		//			lagData->m_flLastMoveYaw.clear();
+				// this was this previous sanity check before i changed it.
+				// i bet you can see why i did.
+				//if (!Engine::g_ResolverData[player->m_entIndex].m_bPredictingUpdates && !Engine::g_ResolverData[player->m_entIndex].m_bCollectedFreestandData)
+				//	break;
 
-		//			// send back our LastMove LBY.
-		//			lagData->m_flLastMoveYaw.push_front(Engine::g_ResolverData[player->m_entIndex].m_sMoveData.m_flLowerBodyYawTarget);
+				// valid move data.
+				if (Engine::g_ResolverData[player->m_entIndex].m_bCollectedValidMoveData) {
+					// clear any past yaws.
+					lagData->m_flLastMoveYaw.clear();
 
-		//			lagData->m_bHitLastMove = true;
-		//		}
-		//		break;
-		//	default:
-		//		break;
-		//	}
-		//}
+					// send back our LastMove LBY.
+					lagData->m_flLastMoveYaw.push_front(Engine::g_ResolverData[player->m_entIndex].m_sMoveData.m_flLowerBodyYawTarget);
+
+					lagData->m_bHitLastMove = true;
+				}
+				break;
+			default:
+				break;
+			}
+		}
 	}
 
 	void C_ShotInformation::CorrectSnapshots(bool is_sending_packet) {

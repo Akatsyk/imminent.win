@@ -5,7 +5,7 @@
 #include "../Utils/Config.hpp"
 #include "../Features/Visuals/EventLogger.hpp"
 #include "../source.hpp"
-// vader.tech invite https://discord.gg/GV6JNW3nze
+
 namespace Menu {
 
 	void DrawMenu() {
@@ -20,6 +20,9 @@ namespace Menu {
 				GUI::Group::BeginGroup(XorStr("Aimbot"), Vector2D(50, 60));
 				GUI::Controls::Checkbox(XorStr("Enabled##rage"), &g_Vars.rage.enabled);
 				GUI::Controls::Hotkey(XorStr("Enabled key##rage"), &g_Vars.rage.key);
+
+				GUI::Controls::Label(XorStr("Distortion Resolver"));
+				GUI::Controls::Hotkey(XorStr("##distoresolverkey"), & g_Vars.rage.distortion_resolver);
 
 				GUI::Controls::Checkbox(XorStr("Silent aim"), &g_Vars.rage.silent_aim);
 				GUI::Controls::Checkbox(XorStr("Automatic fire"), &g_Vars.rage.auto_fire);
@@ -205,22 +208,19 @@ namespace Menu {
 						GUI::Controls::MultiDropdown(XorStr("Conditions##PreferBody") + std::string(XorStr("#") + std::to_string(rage_current_group)), prefer_body_cond);
 					}
 
-					GUI::Controls::Checkbox(XorStr("Delay hitbox selection") + std::string(XorStr("#") + std::to_string(rage_current_group)), &rbot->shotdelay);
+					//GUI::Controls::Checkbox(XorStr("Delay hitbox selection") + std::string(XorStr("#") + std::to_string(rage_current_group)), &rbot->shotdelay);
 					GUI::Controls::Checkbox(XorStr("Delay shot on unduck") + std::string(XorStr("#") + std::to_string(rage_current_group)), &rbot->delay_shot_on_unducking);
 
 					GUI::Controls::Label(XorStr("Force bodyaim") + std::string(XorStr("#") + std::to_string(rage_current_group)));
 					GUI::Controls::Hotkey(XorStr("Force bodyaim key##key") + std::string(XorStr("#") + std::to_string(rage_current_group)), &g_Vars.rage.prefer_body);
-
-					GUI::Controls::Label(XorStr("Override resolver") + std::string(XorStr("#") + std::to_string(rage_current_group)));
-					GUI::Controls::Hotkey(XorStr("Override resolver key##key") + std::string(XorStr("#") + std::to_string(rage_current_group)), &g_Vars.rage.override_reoslver);
-
-				} GUI::Group::EndGroup();
+				} 
+				GUI::Group::EndGroup();
 
 				CVariables::ANTIAIM_STATE* settings = &g_Vars.antiaim_stand;
 
 				GUI::Group::BeginGroup(XorStr("Anti aim"), Vector2D(50, 50));
 				{
-					GUI::Controls::Checkbox(XorStr("Enabled##aa"), &g_Vars.antiaim.enabled);
+					/*GUI::Controls::Checkbox(XorStr("Enabled##aa"), &g_Vars.antiaim.enabled);
 					GUI::Controls::Dropdown(XorStr("Pitch"), { XorStr("Off"), XorStr("Down"), XorStr("Up"), XorStr("Zero"), XorStr("Minimal") }, &settings->pitch);
 					GUI::Controls::Dropdown(XorStr("Yaw"), { XorStr("Off"), XorStr("180"), XorStr("180 Jitter"), XorStr("Jitter"), XorStr("Spin"), XorStr("Random"), XorStr("Static"), XorStr("180z") }, &settings->base_yaw);
 					
@@ -259,6 +259,95 @@ namespace Menu {
 
 					GUI::Controls::Checkbox(XorStr("Stahlhelm"), &g_Vars.antiaim.stahlhelm);
 
+					std::vector<MultiItem_t> freestand_options = {
+						{ XorStr("Standing"), &g_Vars.antiaim.freestand_stand },
+						{ XorStr("Running"), &g_Vars.antiaim.freestand_move },
+					};
+
+					GUI::Controls::MultiDropdown(XorStr("Freestanding"), freestand_options);
+
+					GUI::Controls::Dropdown(XorStr("LBY Breaker"), { XorStr("Off"), XorStr("Dynamic"), XorStr("Sway"), XorStr("Static") }, &settings->yaw);
+					if (settings->yaw > 0)
+					{
+						GUI::Controls::Dropdown(XorStr("Twist"), { XorStr("Off"), XorStr("Skylet"), XorStr("Proper") }, &settings->twist);
+
+						if (settings->yaw == 3)
+							GUI::Controls::Slider(XorStr(""), &g_Vars.antiaim.break_lby, -145, 145);
+					}
+
+					GUI::Controls::Checkbox(XorStr("Distortion###sse"), &g_Vars.antiaim.distort_tggl);
+					GUI::Controls::Checkbox(XorStr("Manual override"), &g_Vars.antiaim.distort_override);
+					if (GUI::Controls::Checkbox(XorStr("Force Turn"), &g_Vars.antiaim.distort_force_turn) || GUI::ctx->setup)
+						GUI::Controls::Slider(XorStr("Multiplier"), &g_Vars.antiaim.distort_force_turn_spd, 0, 12);
+					GUI::Controls::Slider(XorStr("Speed"), &g_Vars.antiaim.distort_spd, 0.f, 10);
+					GUI::Controls::Slider(XorStr("Range"), &g_Vars.antiaim.distort_rmg, 0, 360);
+
+					std::vector<MultiItem_t> distort_disablers = {
+						{ XorStr("Fakewalking"), &g_Vars.antiaim.distort_disable_fakewalk },
+						{ XorStr("Running"), &g_Vars.antiaim.distort_disable_run },
+						{ XorStr("Airborne"), &g_Vars.antiaim.distort_disable_air },
+					};
+
+					GUI::Controls::MultiDropdown(XorStr("Distortion disablers"), distort_disablers);
+
+					GUI::Controls::Checkbox(XorStr("Funny Mode"), &g_Vars.antiaim.funnymode);
+
+					GUI::Controls::Hotkey(XorStr("Funny Walk#Key"), &g_Vars.misc.funnywalk);
+
+					GUI::Controls::Checkbox(XorStr("Slow motion"), &g_Vars.misc.slow_walk);
+					GUI::Controls::Hotkey(XorStr("Slow motion key#Key"), &g_Vars.misc.slow_walk_bind);
+					GUI::Controls::Slider(XorStr("Slow motion speed"), &g_Vars.misc.slow_walk_speed, 4, 16);
+
+					if (GUI::Controls::Checkbox(XorStr("Manual AA"), &g_Vars.antiaim.manual) || GUI::ctx->setup) {
+						GUI::Controls::ColorPicker(XorStr("Manual color"), &g_Vars.antiaim.manual_color);
+						GUI::Controls::Label(XorStr("Left"));
+						GUI::Controls::Hotkey(XorStr("Left key##key"), &g_Vars.antiaim.manual_left_bind, false);
+
+						GUI::Controls::Label(XorStr("Right"));
+						GUI::Controls::Hotkey(XorStr("Right key##key"), &g_Vars.antiaim.manual_right_bind, false);
+
+						GUI::Controls::Label(XorStr("Back"));
+						GUI::Controls::Hotkey(XorStr("Back key##key"), &g_Vars.antiaim.manual_back_bind, false);
+					}
+
+					GUI::Group::EndGroup();*/
+					GUI::Controls::Checkbox(XorStr("Enabled##aa"), &g_Vars.antiaim.enabled);
+					GUI::Controls::Dropdown(XorStr("Pitch"), { XorStr("Off"), XorStr("Down"), XorStr("Up"), XorStr("Zero"), XorStr("Minimal") }, & settings->pitch);
+					GUI::Controls::Dropdown(XorStr("Yaw"), { XorStr("Off"), XorStr("180"), XorStr("180 Jitter"), XorStr("Spin"), XorStr("Random"), XorStr("Static"), XorStr("180z") }, & settings->base_yaw);
+
+					switch (settings->base_yaw) {
+					case 2:
+						GUI::Controls::Slider(XorStr("##180jitterrange"), &settings->OneEightyJitterRange, 0, 180);
+						break;
+					case 3:
+						GUI::Controls::Slider(XorStr("##spinrange"), &settings->RotationSpeed, -180, 180);
+						GUI::Controls::Slider(XorStr("##spinspeed"), &settings->RotationRange, 0, 20);
+						break;
+					case 4:
+						GUI::Controls::Slider(XorStr("##randomrange"), &settings->RandomRange, 0, 180);
+						break;
+					case 5:
+						GUI::Controls::Slider(XorStr("##staticrange"), &settings->staticangle, 0, 180);
+						break;
+					}
+
+					GUI::Controls::Dropdown(XorStr("Yaw while Moving##aa"), { XorStr("Off"), XorStr("180 Jitter") }, &settings->moving_yaw);
+
+					GUI::Controls::Dropdown(XorStr("Fake Yaw"), { XorStr("Off"), XorStr("Default"), XorStr("Relative"), XorStr("Jitter"), XorStr("Rotate"), XorStr("Random") }, &settings->fakeyaw);
+					switch (settings->fakeyaw) {
+					case 2:
+						GUI::Controls::Slider(XorStr("##2"), &settings->relativeamount, -180, 180);
+						break;
+					case 3:
+						GUI::Controls::Slider(XorStr("range##3"), &settings->jitterrange, -180, 180);
+						break;
+					case 4:
+						GUI::Controls::Slider(XorStr("range##4.1"), &settings->rotationrange, -180, 180);
+						GUI::Controls::Slider(XorStr("speed##4.2"), &settings->rotationspeed, 0, 20);
+						break;
+					}
+
+					GUI::Controls::Checkbox(XorStr("Stahlhelm"), &g_Vars.antiaim.stahlhelm);
 					std::vector<MultiItem_t> freestand_options = {
 						{ XorStr("Standing"), &g_Vars.antiaim.freestand_stand },
 						{ XorStr("Running"), &g_Vars.antiaim.freestand_move },

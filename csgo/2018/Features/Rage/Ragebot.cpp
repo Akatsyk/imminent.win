@@ -1023,13 +1023,14 @@ namespace Interfaces
 			return false;
 
 		//if( m_rage_data->rbot->shotdelay ) {
-		//	float delay = m_rage_data->rbot->shotdelay_amount * 0.01f;
-		//	float nextShotTime = this->m_rage_data->m_pWeaponInfo->m_flUnknownFloat0 + TICKS_TO_TIME( LastShotTime );
-		//	if( ( ( ( m_rage_data->m_pWeaponInfo->m_flUnknownFloat0 * delay )
-		//		+ ( m_rage_data->m_pWeaponInfo->m_flUnknownFloat0 * delay ) ) + nextShotTime ) > TICKS_TO_TIME( Interfaces::m_pGlobalVars->tickcount ) ) {
-		//		m_rage_data->m_pCmd->buttons &= ~IN_ATTACK;
-		//		return false;
-		//	}
+			// forcing this LOL!
+			float delay = 0.22;//m_rage_data->rbot->shotdelay_amount * 0.01f;
+			float nextShotTime = this->m_rage_data->m_pWeaponInfo->m_flCycleTime + TICKS_TO_TIME( LastShotTime );
+			if( ( ( ( m_rage_data->m_pWeaponInfo->m_flCycleTime * delay )
+				+ ( m_rage_data->m_pWeaponInfo->m_flCycleTime * delay ) ) + nextShotTime ) > TICKS_TO_TIME( Interfaces::m_pGlobalVars->tickcount ) ) {
+				m_rage_data->m_pCmd->buttons &= ~IN_ATTACK;
+				return false;
+			}
 		//}
 
 		if (m_rage_data->rbot->delay_shot_on_unducking && m_rage_data->m_pLocal->m_flDuckAmount() >= 0.125f) {

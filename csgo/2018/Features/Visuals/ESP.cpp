@@ -1497,6 +1497,31 @@ void CEsp::AmmoBar(C_CSPlayer* player, BBox_t bbox) {
 		}
 	}
 
+	//if (g_Vars.esp.shot_timer)
+	//{
+	//	auto animLayer = player->m_AnimOverlay().Element(1);
+	//	if (animLayer.m_pOwner && pWeaponData->m_iWeaponType != WEAPONTYPE_GRENADE && pWeaponData->m_iWeaponType != WEAPONTYPE_KNIFE && pWeaponData->m_iWeaponType != WEAPONTYPE_C4) 
+	//	{
+	//		const int m_iRenderWidth = bbox.w * 2 - 2;
+
+	//		const float m_flShotCooldown = pWeaponData->m_flCycleTime;
+	//		const float m_flNextShotTime = pWeapon->m_flNextPrimaryAttack();
+
+	//		float m_flFraction = (m_flNextShotTime - Interfaces::m_pGlobalVars->curtime) / m_flShotCooldown;
+	//		m_flFraction = std::clamp<float>(m_flFraction, 0.f, 1.0f);
+
+	//		const float m_flWidth = m_iRenderWidth * (1.0f - m_flFraction);
+
+	//		// draw.
+	//		Render::Engine::RectFilled(bbox.x, bbox.y + bbox.h + 2 + index, bbox.w, 4, Color(0, 0, 0, 180 * this->m_flAlpha[player->EntIndex()]));
+
+
+
+	//		// set this after drawing.
+	//		index += 6;
+	//	}
+	//}
+
 	if (g_Vars.esp.draw_lby_bar && Engine::g_ResolverData[player->EntIndex()].m_bPredictingUpdates) {
 		int current = pWeapon->m_iClip1();
 		int max = pWeaponData->m_iMaxClip;
