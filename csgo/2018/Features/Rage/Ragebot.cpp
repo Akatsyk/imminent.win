@@ -266,6 +266,7 @@ namespace Interfaces
 		// delay shot
 		Vector m_PeekingPosition;
 		float m_flLastPeekTime;
+		bool m_bShouldDelayShot;
 
 		bool m_bDebugGetDamage = false;
 
@@ -581,7 +582,7 @@ namespace Interfaces
 		//ILoggerEvent::Get( )->PushEvent( std::to_string( m_rage_data->m_flInaccuracy ), FloatColor::White, true, "debug" );
 
 		auto success = RunHitscan();
-		if( success.first ) {
+		if (success.first) {
 			m_rage_data->m_bResetCmd = false;
 		}
 
@@ -1022,16 +1023,16 @@ namespace Interfaces
 		if (!m_rage_data->m_pLocal->CanShoot())
 			return false;
 
-		//if( m_rage_data->rbot->shotdelay ) {
-			// forcing this LOL!
-			float delay = 0.22;//m_rage_data->rbot->shotdelay_amount * 0.01f;
-			float nextShotTime = this->m_rage_data->m_pWeaponInfo->m_flCycleTime + TICKS_TO_TIME( LastShotTime );
-			if( ( ( ( m_rage_data->m_pWeaponInfo->m_flCycleTime * delay )
-				+ ( m_rage_data->m_pWeaponInfo->m_flCycleTime * delay ) ) + nextShotTime ) > TICKS_TO_TIME( Interfaces::m_pGlobalVars->tickcount ) ) {
+		// forcing this LOL!
+		if (point->target->player->m_vecVelocity().Length() > 240.f || m_rage_data->m_bShouldDelayShot) {
+			float delay = 0.22;
+			float nextShotTime = this->m_rage_data->m_pWeaponInfo->m_flCycleTime + TICKS_TO_TIME(LastShotTime);
+			if ((((m_rage_data->m_pWeaponInfo->m_flCycleTime * delay)
+				+ (m_rage_data->m_pWeaponInfo->m_flCycleTime * delay)) + nextShotTime) > TICKS_TO_TIME(Interfaces::m_pGlobalVars->tickcount)) {
 				m_rage_data->m_pCmd->buttons &= ~IN_ATTACK;
 				return false;
 			}
-		//}
+		}
 
 		if (m_rage_data->rbot->delay_shot_on_unducking && m_rage_data->m_pLocal->m_flDuckAmount() >= 0.125f) {
 			if (g_Vars.globals.m_flPreviousDuckAmount > m_rage_data->m_pLocal->m_flDuckAmount()) {
@@ -1144,6 +1145,8 @@ namespace Interfaces
 		if (pointScale <= 0.0f)
 			return;
 
+		m_rage_data->m_bShouldDelayShot = record->m_bShouldDelayShot;
+
 		if (hitbox->m_flRadius <= 0.0f) {
 			if (hitboxIndex == HITBOX_RIGHT_FOOT || hitboxIndex == HITBOX_LEFT_FOOT) {
 				float d1 = (hitbox->bbmin.z - center.z) * 0.425f;
@@ -1153,8 +1156,8 @@ namespace Interfaces
 
 				// optimal point for feet
 				// this was commented; uncommented it for testing.
-				AddPoint( player, record, side, points,
-					Vector( center.x, center.y, center.z + d1 ).Transform( boneMatrix[ hitbox->bone ] ),
+				AddPoint(player, record, side, points,
+					Vector(center.x, center.y, center.z + d1).Transform(boneMatrix[hitbox->bone]),
 					hitbox, hitboxSet, true
 				);
 

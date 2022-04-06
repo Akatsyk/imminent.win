@@ -860,6 +860,7 @@ public:
 	config_option(bool, distort_disable_run, false);
 	config_option(bool, distort_disable_air, false);
 
+	config_option(int, freestanding_mode, 0);
 	config_option(bool, freestand_stand, false);
 	config_option(bool, freestand_move, false);
 	config_option(bool, stahlhelm, false);

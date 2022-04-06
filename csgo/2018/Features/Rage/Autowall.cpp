@@ -620,3 +620,36 @@ float Autowall::FireBullets( Encrypted_t<C_FireBulletData> data ) {
 	g_Vars.globals.m_InHBP = false;
 	return -1.f;
 }
+
+// used in our freestanding function.
+float Autowall::GetDamage(C_CSPlayer* shooter, C_CSPlayer* target, const Vector& point, Encrypted_t<CCSWeaponInfo> custom_weapon, const Vector* start)
+{
+	C_CSPlayer* local = C_CSPlayer::GetLocalPlayer();
+	if (!local || local->IsDead())
+		return 0.f;
+
+	C_WeaponCSBaseGun* shooterWeapon = (C_WeaponCSBaseGun*)shooter->m_hActiveWeapon().Get();
+	if (!shooterWeapon || !shooterWeapon->GetCSWeaponData().IsValid())
+		return 0.f;
+
+	C_FireBulletData params;
+
+	params.m_vecStart = shooter == local ? shooter->GetEyePosition() : shooter->m_vecOrigin() + Vector(0.f, 0.f, 64.f);
+	params.m_bTraceFilter->pSkip = shooter; // possibly not needed as we set player to shooter.
+	params.m_Player = shooter;
+	params.m_TargetPlayer = target;
+	params.m_bShouldSimulateShot = custom_weapon.IsValid();
+	params.m_WeaponData = custom_weapon.IsValid() ? custom_weapon.Xor() : shooterWeapon->GetCSWeaponData().Xor();
+
+	//shot is simulated from different origin
+	if (start)
+		params.m_vecStart = *start;
+
+	params.m_flTraceLength = custom_weapon.IsValid() ? params.m_vecStart.Distance(point) : params.m_WeaponData->m_flWeaponRange;
+
+	QAngle angles;
+	Math::VectorAngles(point - params.m_vecStart, angles);
+	Math::AngleVectors(angles, &params.m_vecDirection);
+
+	return FireBullets(&params);
+}

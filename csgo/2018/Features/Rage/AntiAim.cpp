@@ -56,6 +56,8 @@ namespace Interfaces
 
 		virtual bool IsEnabled(Encrypted_t<CUserCmd> cmd, Encrypted_t<CVariables::ANTIAIM_STATE> settings);
 
+		bool m_bUsingManual = false;
+
 		bool m_bNegate = false;
 		float m_flLowerBodyUpdateTime = 0.f;
 		float m_flLowerBodyUpdateYaw = FLT_MAX;
@@ -617,12 +619,199 @@ namespace Interfaces
 		return false;
 	}
 
+	// experimental freestanding.
+	// -1 = no enemies can hit us
+	// 0 = enemies can hit both sides, or no enemies
+	// 1 = we found a safe hiding spot for head
+	int OnetapFreestandingYaw(Encrypted_t<CUserCmd> cmd, float* yaw)
+	{
+		C_CSPlayer* local = C_CSPlayer::GetLocalPlayer();
+		if (!local || local->IsDead())
+			return 0;
+
+		C_WeaponCSBaseGun* weapon = (C_WeaponCSBaseGun*)local->m_hActiveWeapon().Get();
+		if (!weapon)
+			return 0;
+
+		auto weaponInfo = weapon->GetCSWeaponData();
+		if (!weaponInfo.IsValid()) {
+			return 0;
+		}
+
+		// best target.
+		struct AutoTarget_t { float fov; C_CSPlayer* player; };
+		AutoTarget_t target{ 180.f + 1.f, nullptr };
+
+		// iterate players, for closest distance.
+		for (int i{ 1 }; i <= Interfaces::m_pGlobalVars->maxClients; ++i) {
+			auto player = C_CSPlayer::GetPlayerByIndex(i);
+			if (!player || player->IsDead())
+				continue;
+
+			if (player->IsDormant())
+				continue;
+
+			bool is_team = player->IsTeammate(local);
+			if (is_team)
+				continue;
+
+			auto lag_data = Engine::LagCompensation::Get()->GetLagData(player->m_entIndex);
+			if (!lag_data.IsValid())
+				continue;
+
+			// get best target based on fov.
+			Vector origin = player->m_vecOrigin();
+
+			auto AngleDistance = [&](QAngle& angles, const Vector& start, const Vector& end) -> float {
+				auto direction = end - start;
+				auto aimAngles = direction.ToEulerAngles();
+				auto delta = aimAngles - angles;
+				delta.Normalize();
+
+				return sqrtf(delta.x * delta.x + delta.y * delta.y);
+			};
+
+			float fov = AngleDistance(cmd->viewangles, g_Vars.globals.m_vecFixedEyePosition, origin);
+
+			if (fov < target.fov) {
+				target.fov = fov;
+				target.player = player;
+			}
+		}
+
+		// get best player.
+		const auto player = target.player;
+		if (!player)
+			return 0;
+
+		Vector target_position = player->m_vecOrigin() + Vector(0.f, 0.f, 64.f);
+		Vector eye_pos = local->GetEyePosition();
+		Vector angle;
+		Math::VectorAngles(target_position - eye_pos, angle);
+
+		static auto get_rotated_pos = [](Vector start, float rotation, float distance)
+		{
+			float rad = DEG2RAD(rotation);
+			start.x += cos(rad) * distance;
+			start.y += sin(rad) * distance;
+
+			return start;
+		};
+
+		static auto get_rotated_damage = [local, weapon, weaponInfo](C_CSPlayer* shooter, Vector shooter_position, Vector local_position, Vector angle, float* dmg_left, float* dmg_right)
+		{
+			*dmg_left = 0.f;
+			*dmg_right = 0.f;
+
+			bool first_run = true;
+
+			for (float dist = 20.f; dist < 150.f; dist += 30.f)
+			{
+				Vector pos_left = get_rotated_pos(local_position, angle.y + 90.f, dist);
+				Vector pos_right = get_rotated_pos(local_position, angle.y + 90.f, -dist);
+
+				CTraceFilter filter{ };
+				filter.pSkip = local;
+
+				CGameTrace tr;
+				
+				Interfaces::m_pEngineTrace->TraceRay(Ray_t(local_position, pos_left), MASK_SHOT, &filter, &tr);
+				if (tr.fraction <= 0.98f)
+					break;
+
+				tr = CGameTrace();
+
+				Interfaces::m_pEngineTrace->TraceRay(Ray_t(local_position, pos_right), MASK_SHOT, &filter, &tr);
+				if (tr.fraction < 0.98f)
+					break;
+
+				float temp_dmg_left = Autowall::GetDamage(shooter, local, pos_left, weaponInfo, &shooter_position);
+				float temp_dmg_right = Autowall::GetDamage(shooter, local, pos_right, weaponInfo, &shooter_position);
+
+				if (first_run && temp_dmg_left && temp_dmg_right)
+					return false; //enemies can hit both sides
+
+				*dmg_left += temp_dmg_left;
+				*dmg_right += temp_dmg_right;
+
+				first_run = false;
+			}
+
+			return true;
+		};
+
+		float dmg_left_total{ };
+		float dmg_right_total{ };
+
+		if (!get_rotated_damage(player, target_position, eye_pos, angle, &dmg_left_total, &dmg_right_total))
+			return 0; //enemies can hit both side
+
+					  //lets see if we can hide our head
+		if ((std::max(dmg_left_total, dmg_right_total) - std::min(dmg_left_total, dmg_right_total)) > 50.f)
+		{
+			*yaw = dmg_left_total > dmg_right_total ? angle.y - 90.f : angle.y + 90.f;
+			return 1;
+		}
+
+		//run predicted freestand
+		int counter_left = 0;
+		int counter_right = 0;
+
+		//couldnt hide head and we are not hittable by target, predict target to left/right to see if there is a possible position to hit
+		for (float dist = 20.f; dist < 150.f; dist += 30.f)
+		{
+			dmg_left_total = 0.f;
+			dmg_right_total = 0.f;
+
+			Vector target_position_left = get_rotated_pos(target_position, angle.y + 90.f, dist);
+			Vector target_position_right = get_rotated_pos(target_position, angle.y + 90.f, -dist);
+
+			if (!get_rotated_damage(player, target_position_left, eye_pos, angle, &dmg_left_total, &dmg_right_total))
+				return 0; //enemies can hit both side
+
+						  //lets see if we can hide our head
+			if ((std::max(dmg_left_total, dmg_right_total) - std::min(dmg_left_total, dmg_right_total)) > 50.f)
+			{
+				if (!counter_left)
+				{
+					counter_left++;
+				}
+				else
+				{
+					*yaw = dmg_left_total > dmg_right_total ? angle.y - 90.f : angle.y + 90.f;
+					return 1;
+				}
+			}
+
+			if (!get_rotated_damage(player, target_position_right, eye_pos, angle, &dmg_left_total, &dmg_right_total))
+				return 0; //enemies can hit both side
+
+						  //lets see if we can hide our head
+			if ((std::max(dmg_left_total, dmg_right_total) - std::min(dmg_left_total, dmg_right_total)) > 40.f)
+			{
+				if (!counter_right)
+				{
+					counter_right++;
+				}
+				else
+				{
+					*yaw = dmg_left_total > dmg_right_total ? angle.y - 90.f : angle.y + 90.f;
+					return 1;
+				}
+			}
+		}
+
+		return -1;
+	}
+
 	float C_AntiAimbot::GetAntiAimY(Encrypted_t<CVariables::ANTIAIM_STATE> settings, Encrypted_t<CUserCmd> cmd) {
 		auto local = C_CSPlayer::GetLocalPlayer();
 		if (!local || local->IsDead())
 			return FLT_MAX;
 
+		float freestandingReturnYaw = std::numeric_limits< float >::max();
 		float flViewAngle = cmd->viewangles.y;
+
 		auto GetTargetYaw = [local, flViewAngle]() -> float
 		{
 			float_t flBestDistance = FLT_MAX;
@@ -658,6 +847,7 @@ namespace Interfaces
 
 		bool bUsingManualAA = g_Vars.globals.manual_aa >= 0;
 		if (bUsingManualAA) {
+			m_bUsingManual = true;
 			switch (g_Vars.globals.manual_aa) {
 			case 0:
 				flRetValue = flViewAngle + 90.f;
@@ -671,6 +861,7 @@ namespace Interfaces
 			}
 			goto RETURN;
 		}
+		else m_bUsingManual = false;
 
 		bool bStahlhelmEnabled = false, bFreestandingEnabled = false;
 
@@ -687,69 +878,86 @@ namespace Interfaces
 		{
 			bStahlhelmEnabled = false;
 
-			if (local->m_vecVelocity().Length() > 3.f && g_Vars.antiaim.freestand_move && !bUsingManualAA)
+			if (g_Vars.antiaim.freestanding_mode == 0)
 			{
-				const C_AntiAimbot::Directions Direction = HandleDirection(cmd);
-				switch (Direction) {
-				case Directions::YAW_BACK:
-					// backwards yaw.
-					bFreestandingEnabled = true;
-					flRetValue = flViewAngle + 180.f;
-					goto RETURN;
-					break; // we m ight not need this break after the goto return.
-				case Directions::YAW_LEFT:
-					// left yaw.
-					bFreestandingEnabled = true;
-					flRetValue = flViewAngle + 90.f;
-					goto RETURN;
-					break; // we m ight not need this break after the goto return.
-				case Directions::YAW_RIGHT:
-					// right yaw.
-					bFreestandingEnabled = true;
-					flRetValue = flViewAngle - 90.f;
-					goto RETURN;
-					break; // we m ight not need this break after the goto return.
-				case Directions::YAW_NONE:
-					// break because we already have an angle!.
-					bFreestandingEnabled = false;
-					break;
+				if (local->m_vecVelocity().Length() > 3.f && g_Vars.antiaim.freestand_move && !bUsingManualAA)
+				{
+					const C_AntiAimbot::Directions Direction = HandleDirection(cmd);
+					switch (Direction) {
+					case Directions::YAW_BACK:
+						// backwards yaw.
+						bFreestandingEnabled = true;
+						flRetValue = flViewAngle + 180.f;
+						goto RETURN;
+						break; // we m ight not need this break after the goto return.
+					case Directions::YAW_LEFT:
+						// left yaw.
+						bFreestandingEnabled = true;
+						flRetValue = flViewAngle + 90.f;
+						goto RETURN;
+						break; // we m ight not need this break after the goto return.
+					case Directions::YAW_RIGHT:
+						// right yaw.
+						bFreestandingEnabled = true;
+						flRetValue = flViewAngle - 90.f;
+						goto RETURN;
+						break; // we m ight not need this break after the goto return.
+					case Directions::YAW_NONE:
+						// break because we already have an angle!.
+						bFreestandingEnabled = false;
+						break;
+					}
+				}
+
+				if (local->m_vecVelocity().Length() < 3.f && g_Vars.antiaim.freestand_stand && !bUsingManualAA)
+				{
+					const C_AntiAimbot::Directions Direction = HandleDirection(cmd);
+					switch (Direction) {
+					case Directions::YAW_BACK:
+						// backwards yaw.
+						bFreestandingEnabled = true;
+						flRetValue = flViewAngle + 180.f;
+						goto RETURN;
+						break; // we m ight not need this break after the goto return.
+					case Directions::YAW_LEFT:
+						// left yaw.
+						bFreestandingEnabled = true;
+						flRetValue = flViewAngle + 90.f;
+						goto RETURN;
+						break; // we m ight not need this break after the goto return.
+					case Directions::YAW_RIGHT:
+						// right yaw.
+						bFreestandingEnabled = true;
+						flRetValue = flViewAngle - 90.f;
+						goto RETURN;
+						break; // we m ight not need this break after the goto return.
+					case Directions::YAW_NONE:
+						// break because we already have an angle!.
+						bFreestandingEnabled = false;
+						break;
+					}
 				}
 			}
-
-			if (local->m_vecVelocity().Length() < 3.f && g_Vars.antiaim.freestand_stand && !bUsingManualAA)
+			else if (g_Vars.antiaim.freestanding_mode == 1)
 			{
-				const C_AntiAimbot::Directions Direction = HandleDirection(cmd);
-				switch (Direction) {
-				case Directions::YAW_BACK:
-					// backwards yaw.
+				if (OnetapFreestandingYaw(cmd, &freestandingReturnYaw) > 0)
+				{
+					// freestanding angle will
+					// make it harder for enemies
+					// to actually hiit us, so use it
 					bFreestandingEnabled = true;
-					flRetValue = flViewAngle + 180.f;
+					flRetValue = freestandingReturnYaw;
 					goto RETURN;
-					break; // we m ight not need this break after the goto return.
-				case Directions::YAW_LEFT:
-					// left yaw.
-					bFreestandingEnabled = true;
-					flRetValue = flViewAngle + 90.f;
-					goto RETURN;
-					break; // we m ight not need this break after the goto return.
-				case Directions::YAW_RIGHT:
-					// right yaw.
-					bFreestandingEnabled = true;
-					flRetValue = flViewAngle - 90.f;
-					goto RETURN;
-					break; // we m ight not need this break after the goto return.
-				case Directions::YAW_NONE:
-					// break because we already have an angle!.
-					bFreestandingEnabled = false;
-					break;
 				}
+
+				// continue to set our default angle.
+				else bFreestandingEnabled = false;
 			}
 		}
 
 		static int Ticks = 0;
 		if (!bFreestandingEnabled && !bStahlhelmEnabled && !bUsingManualAA)
 		{
-			std::uniform_int_distribution randomnigger(-settings->realjitterrange, settings->realjitterrange);
 			std::uniform_int_distribution randomcockhead(-settings->randomrange, settings->randomrange);
 			bool bJitterSwitch = false;
 
@@ -825,7 +1033,7 @@ namespace Interfaces
 				bDoDistort = false;
 		}
 
-		if (g_Vars.globals.manual_aa != -1 && !g_Vars.antiaim.distort_override)
+		if (m_bUsingManual)
 			bDoDistort = false;
 
 		if (flLastMoveTime == FLT_MAX)

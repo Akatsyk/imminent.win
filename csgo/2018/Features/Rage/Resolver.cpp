@@ -297,7 +297,7 @@ namespace Engine {
 			return;
 		}
 
-		bool bDetectingDistortion = false;
+		static bool bDetectingDistortion = false;
 		const int nMisses = pLagData->m_iMissedShots;
 
 		// we have a valid moving record.
@@ -318,9 +318,11 @@ namespace Engine {
 			static float flLBYDifference = pLagData->m_sPPDUData.m_bShouldUseServerData ? pLagData->m_sPPDUData.m_flPostLowerBodyYaw - pLagData->m_sPPDUData.m_flPreLowerBodyYaw : record->m_flLowerBodyYawTarget - record->m_flOldLowerBodyYaw;
 			if (/*(flLBYDifference > 56.f && nMisses >= 3 || flLBYDifference > 36.f)*/flLBYDifference > 72.f && (!pLagData->m_bDidLBYBreakWithAHighDelta && !pLagData->m_bTriggeredBalanceAdjust) && !record->m_bUnsafeVelocityTransition) // funny number
 				bDetectingDistortion = true;
+			else
+				bDetectingDistortion = false;
 		}
 
-		bool bModulatingLBY = bDetectingDistortion || (pLagData->m_bDidLBYBreakWithAHighDelta && pLagData->m_bTriggeredBalanceAdjust) || record->m_flLowerBodyYawTarget != record->m_flOldLowerBodyYaw || record->m_bUnsafeVelocityTransition;
+		bool bModulatingLBY = bDetectingDistortion || (pLagData->m_bDidLBYBreakWithAHighDelta || pLagData->m_bTriggeredBalanceAdjust) || record->m_flLowerBodyYawTarget != record->m_flOldLowerBodyYaw || record->m_bUnsafeVelocityTransition;
 
 		// the logic behind this should work.
 		// this could also be the reason everything is broken.

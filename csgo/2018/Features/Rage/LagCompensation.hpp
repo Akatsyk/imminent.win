@@ -75,6 +75,7 @@ namespace Engine
 		bool m_bIsDuplicateTickbase;
 		bool m_bTickbaseShiftedBackwards;
 		bool m_bTickbaseShiftedForwards;
+		bool m_bShouldDelayShot;
 
 		int m_iTickBase;
 

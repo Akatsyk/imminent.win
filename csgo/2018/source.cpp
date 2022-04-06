@@ -374,27 +374,27 @@ void __fastcall hkAddRenderable( void* ecx, void* edx, IClientRenderable* pRende
 using PhysicsSimulateFn = void( __thiscall* ) ( void* ecx );
 PhysicsSimulateFn oPhysicsSimulate;
 void __fastcall hkPhysicsSimulate( void* ecx, void* edx ) {
-	//auto local = ( C_CSPlayer* )Interfaces::m_pEntList->GetClientEntity( Interfaces::m_pEngine->GetLocalPlayer( ) );
-	//if( !ecx || !local || local->IsDead( ) || local != ecx )
-	//	return oPhysicsSimulate( ecx );
+	auto local = ( C_CSPlayer* )Interfaces::m_pEntList->GetClientEntity( Interfaces::m_pEngine->GetLocalPlayer( ) );
+	if( !ecx || !local || local->IsDead( ) || local != ecx )
+		return oPhysicsSimulate( ecx );
 
-	//int nSimulationTick = *( int* )( uintptr_t( ecx ) + 0x2AC );
-	//auto pCommandContext = ( C_CommandContext* )( uintptr_t( ecx ) + 0x34FC );
+	int nSimulationTick = *( int* )( uintptr_t( ecx ) + 0x2AC );
+	auto pCommandContext = ( C_CommandContext* )( uintptr_t( ecx ) + 0x34FC );
 
-	//if( !pCommandContext || Interfaces::m_pGlobalVars->tickcount == nSimulationTick || !pCommandContext->needsprocessing )
-	//	return;
+	if( !pCommandContext || Interfaces::m_pGlobalVars->tickcount == nSimulationTick || !pCommandContext->needsprocessing )
+		return;
 
-	//if( pCommandContext->cmd.tick_count >= ( g_Vars.globals.m_pCmd->tick_count + int( 1 / Interfaces::m_pGlobalVars->interval_per_tick ) + g_Vars.sv_max_usercmd_future_ticks->GetInt( ) ) ) {
-	//	nSimulationTick = Interfaces::m_pGlobalVars->tickcount;
-	//	pCommandContext->needsprocessing = false;
+	if( pCommandContext->cmd.tick_count >= ( g_Vars.globals.m_pCmd->tick_count + int( 1 / Interfaces::m_pGlobalVars->interval_per_tick ) + g_Vars.sv_max_usercmd_future_ticks->GetInt( ) ) ) {
+		nSimulationTick = Interfaces::m_pGlobalVars->tickcount;
+		pCommandContext->needsprocessing = false;
 
-	//	Engine::Prediction::Instance( )->StoreNetvarCompression( &pCommandContext->cmd );
-	//}
-	//else {
-	//	Engine::Prediction::Instance( )->RestoreNetvarCompression( &pCommandContext->cmd );
-	//	oPhysicsSimulate( ecx );
-	//	Engine::Prediction::Instance( )->StoreNetvarCompression( &pCommandContext->cmd );
-	//}
+		Engine::Prediction::Instance( )->StoreNetvarCompression( &pCommandContext->cmd );
+	}
+	else {
+		Engine::Prediction::Instance( )->RestoreNetvarCompression( &pCommandContext->cmd );
+		oPhysicsSimulate( ecx );
+		Engine::Prediction::Instance( )->StoreNetvarCompression( &pCommandContext->cmd );
+	}
 }
 
 typedef void( __thiscall* fnCalcViewBob ) ( C_BasePlayer*, Vector& );

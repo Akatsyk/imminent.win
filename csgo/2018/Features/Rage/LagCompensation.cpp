@@ -421,6 +421,7 @@ namespace Engine
 			record->m_iResolverMode = animRecord->m_iResolverMode;
 			record->m_iServerTick = Interfaces::m_pEngine->GetServerTick();
 			record->m_iTickBase = pThis->m_iTickBase;
+			record->m_bShouldDelayShot = animRecord->m_bShouldDelayShot;
 			/*record->m_pPlayerAnimStateServer = animRecord->m_serverPlayerAnimState;*/
 	
 			std::memcpy(record->m_serverAnimationLayers, animRecord->m_serverAnimOverlays, sizeof(animRecord->m_serverAnimOverlays));

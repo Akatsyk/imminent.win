@@ -5,9 +5,9 @@ namespace Autowall
 {
 	class C_FireBulletData {
 	public:
-		Vector m_vecStart = Vector( 0, 0, 0 );
-		Vector m_vecDirection = Vector( 0, 0, 0 );
-		Vector m_vecPos = Vector( 0, 0, 0 );
+		Vector m_vecStart = Vector(0, 0, 0);
+		Vector m_vecDirection = Vector(0, 0, 0);
+		Vector m_vecPos = Vector(0, 0, 0);
 
 		CGameTrace m_EnterTrace;
 
@@ -30,6 +30,7 @@ namespace Autowall
 		FloatColor m_colImpacts;
 
 		bool m_bShouldIgnoreDistance = false;
+		bool m_bShouldSimulateShot = false;
 
 		CTraceFilter* m_bTraceFilter = nullptr;
 		ITraceFilter* m_Filter = nullptr; // TODO: implement
@@ -41,13 +42,14 @@ namespace Autowall
 		surfacedata_t* m_EnterSurfaceData;
 	};
 
-	bool IsBreakable( C_BaseEntity* entity );
-	bool IsArmored( C_CSPlayer* player, int hitgroup );
-	float ScaleDamage( C_CSPlayer* player, float damage, float armor_ratio, int hitgroup );
-	void TraceLine( const Vector& start, const Vector& end, uint32_t mask, ITraceFilter* ignore, CGameTrace* ptr );
-	void ClipTraceToPlayers( const Vector& vecAbsStart, const Vector& vecAbsEnd, uint32_t mask, ITraceFilter* filter, CGameTrace* tr, float flMaxRange = 60.0f, float flMinRange = 0.0f );
-	void ClipTraceToPlayer( const Vector vecAbsStart, const Vector& vecAbsEnd, uint32_t mask, ITraceFilter* filter, CGameTrace* tr, Encrypted_t<Autowall::C_FireBulletData> data );
-	bool TraceToExit( CGameTrace* enter_trace, Vector start, Vector direction, CGameTrace* exit_trace );
-	bool HandleBulletPenetration( Encrypted_t<C_FireBulletData> data );
-	float FireBullets( Encrypted_t<C_FireBulletData> data );
+	bool IsBreakable(C_BaseEntity* entity);
+	bool IsArmored(C_CSPlayer* player, int hitgroup);
+	float ScaleDamage(C_CSPlayer* player, float damage, float armor_ratio, int hitgroup);
+	void TraceLine(const Vector& start, const Vector& end, uint32_t mask, ITraceFilter* ignore, CGameTrace* ptr);
+	void ClipTraceToPlayers(const Vector& vecAbsStart, const Vector& vecAbsEnd, uint32_t mask, ITraceFilter* filter, CGameTrace* tr, float flMaxRange = 60.0f, float flMinRange = 0.0f);
+	void ClipTraceToPlayer(const Vector vecAbsStart, const Vector& vecAbsEnd, uint32_t mask, ITraceFilter* filter, CGameTrace* tr, Encrypted_t<Autowall::C_FireBulletData> data);
+	bool TraceToExit(CGameTrace* enter_trace, Vector start, Vector direction, CGameTrace* exit_trace);
+	bool HandleBulletPenetration(Encrypted_t<C_FireBulletData> data);
+	float FireBullets(Encrypted_t<C_FireBulletData> data);
+	float GetDamage(C_CSPlayer* shooter, C_CSPlayer* target, const Vector& point, Encrypted_t<CCSWeaponInfo> custom_weapon = nullptr, const Vector* start = nullptr);
 }

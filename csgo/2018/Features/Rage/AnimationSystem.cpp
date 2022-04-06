@@ -349,6 +349,7 @@ namespace Engine
 
 		pThis->m_vecOrigin = pThis->player->m_vecOrigin();
 
+		record->m_bIsDormant = pThis->player->IsDormant();
 		record->m_vecOrigin = pThis->player->m_vecOrigin();
 		record->m_angEyeAngles = pThis->player->m_angEyeAngles();
 		record->m_flSimulationTime = pThis->m_flSimulationTime;
@@ -394,6 +395,10 @@ namespace Engine
 			record->m_flChokeTime = pThis->m_flSimulationTime - pThis->m_flOldSimulationTime;
 			record->m_iChokeTicks = TIME_TO_TICKS(record->m_flChokeTime);
 			record->m_flOldLowerBodyYaw = previous_record->m_flLowerBodyYawTarget;
+
+			// we could possibly put this at the top of this but it's probably better if we set all of our data before storing this variable.
+			if (previous_record->m_bIsDormant && !record->m_bIsDormant)
+				record->m_bShouldDelayShot = true;
 		}
 		else {
 			record->m_flChokeTime = Interfaces::m_pGlobalVars->interval_per_tick;
@@ -450,6 +455,18 @@ namespace Engine
 		if (weapon) {
 			record->m_flShotTime = weapon->m_fLastShotTime();
 			record->m_bIsShoting = record->m_flSimulationTime >= record->m_flShotTime && record->m_flShotTime > previous_record->m_flSimulationTime;
+		}
+
+		if (previous_record.IsValid()) {
+			if (record->m_bIsShoting) {
+				// we have a vaild on shot record
+				if (record->m_flShotTime <= record->m_flSimulationTime) {
+					// possibly switch this around
+					player->m_angEyeAngles() = record->m_angEyeAngles;
+				}
+				else
+					record->m_angEyeAngles = previous_record->m_angEyeAngles;
+			}
 		}
 
 		record->m_bIsInvalid = false;

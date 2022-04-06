@@ -43,6 +43,8 @@ namespace Engine
 		bool m_bTeleporting;
 		bool m_bShiftingTickbase;
 		bool m_bResolved;
+		bool m_bShouldDelayShot;
+		bool m_bIsDormant;
 
 		bool m_bNoFakeAngles;
 		bool m_bFakeWalking;

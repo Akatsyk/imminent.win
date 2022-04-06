@@ -312,6 +312,7 @@ namespace Menu {
 
 					GUI::Group::EndGroup();*/
 					GUI::Controls::Checkbox(XorStr("Enabled##aa"), &g_Vars.antiaim.enabled);
+					GUI::Controls::Checkbox(XorStr("At Targets"), &settings->at_targets);
 					GUI::Controls::Dropdown(XorStr("Pitch"), { XorStr("Off"), XorStr("Down"), XorStr("Up"), XorStr("Zero"), XorStr("Minimal") }, & settings->pitch);
 					GUI::Controls::Dropdown(XorStr("Yaw"), { XorStr("Off"), XorStr("180"), XorStr("180 Jitter"), XorStr("Spin"), XorStr("Random"), XorStr("Static"), XorStr("180z") }, & settings->base_yaw);
 
@@ -348,12 +349,17 @@ namespace Menu {
 					}
 
 					GUI::Controls::Checkbox(XorStr("Stahlhelm"), &g_Vars.antiaim.stahlhelm);
-					std::vector<MultiItem_t> freestand_options = {
-						{ XorStr("Standing"), &g_Vars.antiaim.freestand_stand },
-						{ XorStr("Running"), &g_Vars.antiaim.freestand_move },
-					};
 
-					GUI::Controls::MultiDropdown(XorStr("Freestanding"), freestand_options);
+					GUI::Controls::Dropdown(XorStr("Freestanding Modes"), { XorStr("Normal"), XorStr("Experimental") }, &g_Vars.antiaim.freestanding_mode);
+					if (g_Vars.antiaim.freestanding_mode == 0)
+					{
+						std::vector<MultiItem_t> freestand_options = {
+							{ XorStr("Standing"), &g_Vars.antiaim.freestand_stand },
+							{ XorStr("Running"), &g_Vars.antiaim.freestand_move },
+						};
+
+						GUI::Controls::MultiDropdown(XorStr("Freestanding"), freestand_options);
+					}
 
 					GUI::Controls::Dropdown(XorStr("LBY Breaker"), { XorStr("Off"), XorStr("Dynamic"), XorStr("Sway"), XorStr("Static") }, &settings->yaw);
 					if (settings->yaw > 0)

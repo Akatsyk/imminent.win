@@ -634,35 +634,51 @@ void CCSGOPlayerAnimState::ModifyEyePosition(CCSGOPlayerAnimState* pState, Vecto
 	// https://i.imgur.com/zGnqd3y.png
 	static auto C_BaseAnimating__LookupBone = *reinterpret_cast<int(__thiscall*)(void*, const char*)>(Memory::Scan(XorStr("client.dll"), XorStr("55 8B EC 53 56 8B F1 57 83 BE ?? ?? ?? ?? ?? 75 14")));
 
-	if (pState->m_Player && pState->m_bHitground || pState->m_fDuckAmount != 0.f) {
-		// this returns 8 but i'd rather grab it dynamically in the rare event of it changing
-		auto v5 = C_BaseAnimating__LookupBone(pState->m_Player, XorStr("head_0"));
+	// thanks onetap!
+	auto headBone = C_BaseAnimating__LookupBone(pState->m_Player, XorStr("head_0"));
 
-		if (v5 != -1) {
-			auto v12 = (reinterpret_cast<C_CSPlayer*>(pState->m_Player))->GetBonePos(v5);
-			auto v7 = v12.z + 1.7;
+	Vector headPos;
+	headPos = (reinterpret_cast<C_CSPlayer*>(pState->m_Player))->GetBonePos(headBone);
 
-			auto v8 = pos->z;
-			if (v8 > v7) // if (v8 > (v12 + 1.7))
-			{
-				float v13 = 0.f;
-				float v3 = (*pos).z - v7;
-
-				// changed this from float division to float multiplication cos its faster
-				float v4 = (v3 - 4.f) * 0.16666667;
-				if (v4 >= 0.f)
-					v13 = std::fminf(v4, 1.f);
-
-				(*pos).z += ((v7 - (*pos).z) * (((v13 * v13) * 3.f) - (((v13 * v13) * 2.f) * v13)));
-			}
-		}
-
-		// ( *( *g_MdlCache + 136 ) )( g_MdlCache );
-
-		// Idk what the fuck this does but it gets called on server so why not call it here
-		// ((136 / 4) = 34) -> That's the server index, and on server they are offseted by one
-		// Memory::GetVirtualFunction( Context::CSGO.ModelCache, 33 ).cast< void( __thiscall * )( void * )>( )( Context::CSGO.ModelCache );
+	float headWeight = headPos.z + 1.7f;
+	if (headWeight < pos->z) {
+		// possibly change this back to the float division, even though it'll be slower, for more accuracy during this calculation as it is a repeating decimal.
+		auto v116 = std::clamp((std::fabsf(pos->z - headWeight) - 4.0f) * (1.0f / 6.0f) /*0.16666667f*/, 0.0f, 1.0f);
+		pos->z += ((headWeight - pos->z) * ((powf(v116, 2) * 3.0f) - ((powf(v116, 2) * 2.0f) * v116)));
 	}
+
+	// alpha code.
+	/*
+	//if (pState->m_Player && pState->m_bHitground || pState->m_fDuckAmount != 0.f) {
+	//	// this returns 8 but i'd rather grab it dynamically in the rare event of it changing
+	//	auto v5 = C_BaseAnimating__LookupBone(pState->m_Player, XorStr("head_0"));
+
+	//	if (v5 != -1) {
+	//		auto v12 = (reinterpret_cast<C_CSPlayer*>(pState->m_Player))->GetBonePos(v5);
+	//		auto v7 = v12.z + 1.7;
+
+	//		auto v8 = pos->z;
+	//		if (v8 > v7) // if (v8 > (v12 + 1.7))
+	//		{
+	//			float v13 = 0.f;
+	//			float v3 = (*pos).z - v7;
+
+	//			// changed this from float division to float multiplication cos its faster
+	//			float v4 = (v3 - 4.f) * 0.16666667;
+	//			if (v4 >= 0.f)
+	//				v13 = std::fminf(v4, 1.f);
+
+	//			(*pos).z += ((v7 - (*pos).z) * (((v13 * v13) * 3.f) - (((v13 * v13) * 2.f) * v13)));
+	//		}
+	//	}
+
+	//	// ( *( *g_MdlCache + 136 ) )( g_MdlCache );
+
+	//	// Idk what the fuck this does but it gets called on server so why not call it here
+	//	// ((136 / 4) = 34) -> That's the server index, and on server they are offseted by one
+	//	// Memory::GetVirtualFunction( Context::CSGO.ModelCache, 33 ).cast< void( __thiscall * )( void * )>( )( Context::CSGO.ModelCache );
+	//}
+	*/
 }
 
 Vector C_CSPlayer::GetEyePosition() {
