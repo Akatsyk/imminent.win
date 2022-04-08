@@ -352,6 +352,8 @@ namespace Engine {
 				g_ResolverData[player->EntIndex()].m_sResolverMode = XorStr("LM");
 				g_ResolverData[player->EntIndex()].m_flFinalResolverYaw = g_ResolverData[player->EntIndex()].m_sMoveData.m_flLowerBodyYawTarget;
 			}
+
+			record->m_bResolved = true;
 		}
 
 		// distortion resolver; or at least hopefully a distortion resolver.
@@ -587,7 +589,7 @@ namespace Engine {
 			bLBYIsFlicking = false;
 			return;
 		}
-
+	
 		// we have no reliable move data, we can't predict
 		if (!Engine::g_ResolverData[player->EntIndex()].m_bCollectedValidMoveData) {
 			Engine::g_ResolverData[player->EntIndex()].m_bPredictingUpdates = false;
@@ -615,79 +617,79 @@ namespace Engine {
 			return;
 		}
 
-		//// let's hit this nigga when his lby changes
-		//if (pLagData->m_bDidLBYChange)
-		//{
-		//	bLBYIsFlicking = true;
-		//	g_ResolverData[player->EntIndex()].m_flFinalResolverYaw = pLagData->m_flLowerBodyYaw;
-		//	g_ResolverData[player->EntIndex()].flNextBodyUpdate = pLagData->m_flNextLBYUpdateTime;
-		//}
+	//	// let's hit this nigga when his lby changes
+	//	if (pLagData->m_bDidLBYChange)
+	//	{
+	//		bLBYIsFlicking = true;
+	//		g_ResolverData[player->EntIndex()].m_flFinalResolverYaw = pLagData->m_flLowerBodyYaw;
+	//		g_ResolverData[player->EntIndex()].flNextBodyUpdate = pLagData->m_flNextLBYUpdateTime;
+	//	}
 
-		//// this fool triggered balance adjust get his ass
-		//else if (pLagData->m_bTriggeredBalanceAdjust)
-		//{
-		//	bLBYIsFlicking = true;
-		//	g_ResolverData[player->EntIndex()].m_flFinalResolverYaw = pLagData->m_flLowerBodyYaw;
+	//	// this fool triggered balance adjust get his ass
+	//	else if (pLagData->m_bTriggeredBalanceAdjust)
+	//	{
+	//		bLBYIsFlicking = true;
+	//		g_ResolverData[player->EntIndex()].m_flFinalResolverYaw = pLagData->m_flLowerBodyYaw;
 
-		//	if (record->m_vecVelocity.Length() > 5.f)
-		//		g_ResolverData[player->EntIndex()].flNextBodyUpdate = player->m_flAnimationTime() + 0.22f;
-		//	else if (player->m_flAnimationTime() > g_ResolverData[player->EntIndex()].flNextBodyUpdate)
-		//		g_ResolverData[player->EntIndex()].flNextBodyUpdate = player->m_flAnimationTime() + 1.1f;
-		//}
+	//		if (record->m_vecVelocity.Length() > 5.f)
+	//			g_ResolverData[player->EntIndex()].flNextBodyUpdate = player->m_flAnimationTime() + 0.22f;
+	//		else if (player->m_flAnimationTime() > g_ResolverData[player->EntIndex()].flNextBodyUpdate)
+	//			g_ResolverData[player->EntIndex()].flNextBodyUpdate = player->m_flAnimationTime() + 1.1f;
+	//	}
 
-		//// we're gonna get your bitch ass
-		//else if (pLagData->m_bFlickedToLBY && pLagData->m_bDidLBYBreakWithAHighDelta)
-		//{
-		//	bLBYIsFlicking = true;
+	//	// we're gonna get your bitch ass
+	//	else if (pLagData->m_bFlickedToLBY && pLagData->m_bDidLBYBreakWithAHighDelta)
+	//	{
+	//		bLBYIsFlicking = true;
 
-		//	 possibly set this to away angle + 120 since we know they are breaking with a high delta.
-		//	g_ResolverData[player->EntIndex()].m_flFinalResolverYaw = pLagData->m_flLowerBodyYaw;
+	//		 //possibly set this to away angle + 120 since we know they are breaking with a high delta.
+	//		g_ResolverData[player->EntIndex()].m_flFinalResolverYaw = pLagData->m_flLowerBodyYaw;
 
-		//	if (record->m_vecVelocity.Length() > 5.f)
-		//		g_ResolverData[player->EntIndex()].flNextBodyUpdate = player->m_flAnimationTime() + 0.22f;
-		//	else if (player->m_flAnimationTime() > g_ResolverData[player->EntIndex()].flNextBodyUpdate)
-		//		g_ResolverData[player->EntIndex()].flNextBodyUpdate = player->m_flAnimationTime() + 1.1f;
-		//}
+	//		if (record->m_vecVelocity.Length() > 5.f)
+	//			g_ResolverData[player->EntIndex()].flNextBodyUpdate = player->m_flAnimationTime() + 0.22f;
+	//		else if (player->m_flAnimationTime() > g_ResolverData[player->EntIndex()].flNextBodyUpdate)
+	//			g_ResolverData[player->EntIndex()].flNextBodyUpdate = player->m_flAnimationTime() + 1.1f;
+	//	}
 
-		//if (pLagData->m_sPPDUData.m_bLowerBodyYawDiffersFromRecord)
-		//{
-		//	record->m_angEyeAngles.y = player->m_angEyeAngles().y = record->m_flLowerBodyYawTarget;
-		//	g_ResolverData[player->EntIndex()].flNextBodyUpdate = player->m_flAnimationTime() + 1.1f;
+	//	if (pLagData->m_sPPDUData.m_bLowerBodyYawDiffersFromRecord)
+	//	{
+	//		record->m_angEyeAngles.y = player->m_angEyeAngles().y = record->m_flLowerBodyYawTarget;
+	//		g_ResolverData[player->EntIndex()].flNextBodyUpdate = player->m_flAnimationTime() + 1.1f;
 
-		//	// ↓ this possibly was causing the crash.
-		//	//g_ResolverData[player->EntIndex()].flNextBodyUpdate = pLagData->m_sPPDUData.m_flRecordedLBYUpdateTime;
-		//}
+	//		// ↓ this possibly was causing the crash.
+	//		//g_ResolverData[player->EntIndex()].flNextBodyUpdate = pLagData->m_sPPDUData.m_flRecordedLBYUpdateTime;
+	//	}
 
-		//if (Engine::g_ResolverData[player->EntIndex()].m_body != Engine::g_ResolverData[player->EntIndex()].m_old_body) {
-		//	//record->m_angEyeAngles.y = player->m_angEyeAngles().y = Engine::g_ResolverData[player->EntIndex()].m_body;
+	//	if (Engine::g_ResolverData[player->EntIndex()].m_body != Engine::g_ResolverData[player->EntIndex()].m_old_body) {
+	//		//record->m_angEyeAngles.y = player->m_angEyeAngles().y = Engine::g_ResolverData[player->EntIndex()].m_body;
 
-		//	ILoggerEvent::Get()->PushEvent(XorStr("LBY UPDATED"), FloatColor(0.5f, 0.5f, 0.5f), true);
+	//		ILoggerEvent::Get()->PushEvent(XorStr("LBY UPDATED"), FloatColor(0.5f, 0.5f, 0.5f), true);
 
-		//	//g_ResolverData[player->EntIndex()].flNextBodyUpdate = player->m_flAnimationTime() + 1.1f;
-		//}
+	//		//g_ResolverData[player->EntIndex()].flNextBodyUpdate = player->m_flAnimationTime() + 1.1f;
+	//	}
 
-		// lby updated on this tick
-		//if ( player->m_flAnimationTime() > g_ResolverData[player->EntIndex()].flNextBodyUpdate ) {
-		//	// inform the cheat of the resolver method
-		//	record->m_iResolverMode = EResolverModes::RESOLVE_PRED;
+	//	 //lby updated on this tick
+	//	if ( player->m_flAnimationTime() > g_ResolverData[player->EntIndex()].flNextBodyUpdate ) {
+	//		// inform the cheat of the resolver method
+	//		record->m_iResolverMode = EResolverModes::RESOLVE_PRED;
 
-		//	g_ResolverData[player->EntIndex()].m_sResolverMode = XorStr("F");
+	//		g_ResolverData[player->EntIndex()].m_sResolverMode = XorStr("F");
 
-		//	// predict the next body update
-		//	g_ResolverData[player->EntIndex()].flNextBodyUpdate = player->m_flAnimationTime() + 1.1f;
+	//		// predict the next body update
+	//		g_ResolverData[player->EntIndex()].flNextBodyUpdate = player->m_flAnimationTime() + 1.1f;
 
-		//	// set eyeangles to lby
-		//	record->m_angEyeAngles.y = player->m_angEyeAngles().y = record->m_flLowerBodyYawTarget;
+	//		// set eyeangles to lby
+	//		record->m_angEyeAngles.y = player->m_angEyeAngles().y = record->m_flLowerBodyYawTarget;
 
-		//	printf("[lby update detected]\n", player->m_angEyeAngles().y);
+	//		printf("[lby update detected]\n", player->m_angEyeAngles().y);
 
-		//	// this is also only really used for esp flag
-		//	record->m_bResolved = true;
-		//	bLBYIsFlicking = true;
+	//		// this is also only really used for esp flag
+	//		record->m_bResolved = true;
+	//		bLBYIsFlicking = true;
 
-		//	// we're now in the prediction stage.
-		//	Engine::g_ResolverData[player->EntIndex()].m_bPredictingUpdates = true;
-		//}
+	//		// we're now in the prediction stage.
+	//		Engine::g_ResolverData[player->EntIndex()].m_bPredictingUpdates = true;
+	//	}
 	}
 }
 
@@ -697,7 +699,7 @@ namespace Engine {
 #include "../Visuals/CChams.hpp"
 #include "../Rage/AntiAim.hpp"
 #include "../Rage/Ragebot.hpp"
-#include "../Rage/Autowall.h"
+#include "../Rage/Autowall.h" 
 #include "../Visuals/EventLogger.hpp"
 
 namespace Engine {
