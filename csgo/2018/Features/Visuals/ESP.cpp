@@ -1497,30 +1497,33 @@ void CEsp::AmmoBar(C_CSPlayer* player, BBox_t bbox) {
 		}
 	}
 
-	//if (g_Vars.esp.shot_timer)
-	//{
-	//	auto animLayer = player->m_AnimOverlay().Element(1);
-	//	if (animLayer.m_pOwner && pWeaponData->m_iWeaponType != WEAPONTYPE_GRENADE && pWeaponData->m_iWeaponType != WEAPONTYPE_KNIFE && pWeaponData->m_iWeaponType != WEAPONTYPE_C4) 
-	//	{
-	//		const int m_iRenderWidth = bbox.w * 2 - 2;
+	if (g_Vars.esp.shot_timer)
+	{
+		auto animLayer = player->m_AnimOverlay().Element(1);
+		if (animLayer.m_pOwner && pWeaponData->m_iWeaponType != WEAPONTYPE_GRENADE && pWeaponData->m_iWeaponType != WEAPONTYPE_KNIFE && pWeaponData->m_iWeaponType != WEAPONTYPE_C4) 
+		{
+			const int m_iRenderWidth = bbox.w * 2 - 2;
 
-	//		const float m_flShotCooldown = pWeaponData->m_flCycleTime;
-	//		const float m_flNextShotTime = pWeapon->m_flNextPrimaryAttack();
+			const float m_flShotCooldown = pWeaponData->m_flCycleTime;
+			const float m_flNextShotTime = pWeapon->m_flNextPrimaryAttack();
 
-	//		float m_flFraction = (m_flNextShotTime - Interfaces::m_pGlobalVars->curtime) / m_flShotCooldown;
-	//		m_flFraction = std::clamp<float>(m_flFraction, 0.f, 1.0f);
+			float m_flFraction = (m_flNextShotTime - Interfaces::m_pGlobalVars->curtime) / m_flShotCooldown;
+			m_flFraction = std::clamp<float>(m_flFraction, 0.f, 1.0f);
 
-	//		const float m_flWidth = m_iRenderWidth * (1.0f - m_flFraction);
+			const float m_flWidth = m_iRenderWidth * (1.0f - m_flFraction);
 
-	//		// draw.
-	//		Render::Engine::RectFilled(bbox.x, bbox.y + bbox.h + 2 + index, bbox.w, 4, Color(0, 0, 0, 180 * this->m_flAlpha[player->EntIndex()]));
+			// draw.
+			Render::Engine::RectFilled(bbox.x, bbox.y + bbox.h + 2 + index, bbox.w, 4, Color(0, 0, 0, 180 * this->m_flAlpha[player->EntIndex()]));
 
+			Color clr = g_Vars.esp.shot_color.ToRegularColor();
+			clr.RGBA[3] *= this->m_flAlpha[player->EntIndex()];
 
+			Render::Engine::Rect(bbox.x + 1, bbox.y + bbox.h + 3 + index, m_flWidth, 2, clr);
 
-	//		// set this after drawing.
-	//		index += 6;
-	//	}
-	//}
+			// set this after drawing.
+			index += 6;
+		}
+	}
 
 	if (g_Vars.esp.draw_lby_bar && Engine::g_ResolverData[player->EntIndex()].m_bPredictingUpdates) {
 		int current = pWeapon->m_iClip1();
@@ -1681,31 +1684,7 @@ void CEsp::DrawInfo(C_CSPlayer* player, BBox_t bbox, player_info_t player_info) 
 		if (!anim_data->m_AnimationRecord.empty()) {
 			auto current = &anim_data->m_AnimationRecord.front();
 			if (current) {
-				//if (current->m_bResolved)
-					g_Vars.globals.m_vecTextInfo[player->EntIndex()].emplace_back(FloatColor(0, 255, 0, (int)(180 * m_flAlpha[player->EntIndex()])), Engine::g_ResolverData[player->EntIndex()].m_sResolverMode);
-
-					std::stringstream msg;
-
-					float flTimeTillFlick = resolver_data.flNextBodyUpdate - player->m_flAnimationTime();
-					Math::NormalizeFloat(flTimeTillFlick);
-
-					if (flTimeTillFlick < 2.f &&
-				        flTimeTillFlick > 0.0000001f) {
-						msg << XorStr("Flick: ") << float(flTimeTillFlick);
-					}
-					else {
-						msg << XorStr("Flick: ?");
-					}
-
-					g_Vars.globals.m_vecTextInfo[player->EntIndex()].emplace_back(FloatColor(0, 255, 0, (int)(180 * m_flAlpha[player->EntIndex()])), msg.str());
-				//else
-				//	g_Vars.globals.m_vecTextInfo[player->EntIndex()].emplace_back(FloatColor(255, 0, 0, (int)(180 * m_flAlpha[player->EntIndex()])), XorStr("R"));
-				
-				//Engine::CResolverData res_data;
-
-				//g_Vars.globals.m_vecTextInfo[player->EntIndex()].emplace_back(FloatColor(133, 198, 22, (int)(180 * m_flAlpha[player->EntIndex()])), res_data.m_sResolverMode);
-
-				//g_Vars.globals.m_vecTextInfo[ player->EntIndex( ) ].emplace_back( FloatColor( 255, 255, 255, ( int )( 180 * m_flAlpha[ player->EntIndex( ) ] ) ), std::to_string( current->m_iResolverMode ) );
+				g_Vars.globals.m_vecTextInfo[player->EntIndex()].emplace_back(FloatColor(0, 255, 0, (int)(180 * m_flAlpha[player->EntIndex()])), Engine::g_ResolverData[player->EntIndex()].m_sResolverMode);
 			}
 		}
 	}

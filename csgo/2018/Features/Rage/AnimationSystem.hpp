@@ -7,6 +7,7 @@
 #include <map>
 #include <deque>
 
+extern bool m_bShouldDelayShot;
 
 namespace Engine
 {
@@ -43,7 +44,6 @@ namespace Engine
 		bool m_bTeleporting;
 		bool m_bShiftingTickbase;
 		bool m_bResolved;
-		bool m_bShouldDelayShot;
 		bool m_bIsDormant;
 
 		bool m_bNoFakeAngles;

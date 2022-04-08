@@ -266,7 +266,6 @@ namespace Interfaces
 		// delay shot
 		Vector m_PeekingPosition;
 		float m_flLastPeekTime;
-		bool m_bShouldDelayShot;
 
 		bool m_bDebugGetDamage = false;
 
@@ -1024,7 +1023,7 @@ namespace Interfaces
 			return false;
 
 		// forcing this LOL!
-		if (point->target->player->m_vecVelocity().Length() > 240.f || m_rage_data->m_bShouldDelayShot) {
+		if (point->target->player->m_vecVelocity().Length() > 240.f || m_bShouldDelayShot) {
 			float delay = 0.22;
 			float nextShotTime = this->m_rage_data->m_pWeaponInfo->m_flCycleTime + TICKS_TO_TIME(LastShotTime);
 			if ((((m_rage_data->m_pWeaponInfo->m_flCycleTime * delay)
@@ -1144,8 +1143,6 @@ namespace Interfaces
 
 		if (pointScale <= 0.0f)
 			return;
-
-		m_rage_data->m_bShouldDelayShot = record->m_bShouldDelayShot;
 
 		if (hitbox->m_flRadius <= 0.0f) {
 			if (hitboxIndex == HITBOX_RIGHT_FOOT || hitboxIndex == HITBOX_LEFT_FOOT) {

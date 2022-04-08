@@ -1134,6 +1134,10 @@ namespace Interfaces
 			}
 		}
 
+		// this might cause crashing;
+		// but putting this here might cause crashing too.
+		net_time = (double*)(Memory::Scan(XorStr("engine.dll"), XorStr("F2 0F 10 05 ?? ?? ?? ?? 8B CF")) + 4);
+
 		Hooked::CL_FireEvents = reinterpret_cast< Hooked::CL_FireEventsFn >( Memory::Scan( XorStr( "engine.dll" ), XorStr( "55 8B EC 83 EC 08 53 8B 1D ?? ?? ?? ?? 56 57 83 BB ?? ?? 00 00 06" ) ) );
 
 		if( !Hooked::CL_FireEvents ) {
@@ -1146,6 +1150,7 @@ namespace Interfaces
 		//oDispatchUserMessage = Hooked::HooksManager.HookVirtual<decltype( oDispatchUserMessage )>( m_pClient.Xor( ), &hkDispatchUserMessage, 38 );
 		//oIsConnected = Hooked::HooksManager.HookVirtual<decltype( oIsConnected )>( m_pEngine.Xor( ), &hkIsConnected, 27 );
 		oIsBoxVisible = Hooked::HooksManager.HookVirtual<decltype( oIsBoxVisible )>( m_pEngine.Xor( ), &Hooked::hkIsBoxVisible, 32 );
+
 
 		oCreateMove = Hooked::HooksManager.HookVirtual<decltype( oCreateMove )>( m_pClientMode.Xor( ), &Hooked::CreateMove, Index::CClientModeShared::CreateMove );
 		oDoPostScreenEffects = Hooked::HooksManager.HookVirtual<decltype( oDoPostScreenEffects )>( m_pClientMode.Xor( ), &Hooked::DoPostScreenEffects, Index::CClientModeShared::DoPostScreenSpaceEffects );
@@ -1248,10 +1253,6 @@ namespace Interfaces
 		oStartLagCompensation = Hooked::HooksManager.CreateHook<decltype(oStartLagCompensation) >(&hkStartLagCompensation, (void*)StartLagCompensation);
 
 		Hooked::HooksManager.Enable( );
-
-		// this might cause crashing;
-		// but putting this here might cause crashing too.
-		net_time = ( double* ) ( Memory::Scan( XorStr( "engine.dll" ), XorStr( "F2 0F 10 05 ?? ?? ?? ?? 8B CF" ) ) + 4 );
 
 		return true;
 	}

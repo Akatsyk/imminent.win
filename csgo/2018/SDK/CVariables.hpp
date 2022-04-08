@@ -935,11 +935,13 @@ public:
 	config_option(bool, team_check, false);
 	config_option(bool, draw_ammo_bar, false);
 	config_option(bool, draw_lby_bar, false);
+	config_option(bool, shot_timer, false);
 	config_option(bool, name, false);
 	config_option(FloatColor, name_color, FloatColor(1.0f, 1.0f, 1.0f, 1.0f));
 	config_option(FloatColor, weapon_color, FloatColor(1.0f, 1.0f, 1.0f, 1.0f));
 	config_option(FloatColor, ammo_color, FloatColor(1.0f, 1.0f, 1.0f, 1.0f));
 	config_option(FloatColor, lby_color, FloatColor(1.0f, 1.0f, 1.0f, 1.0f));
+	config_option(FloatColor, shot_color, FloatColor(1.0f, 1.0f, 1.0f, 1.0f));
 	config_option(bool, weapon, false);
 	config_option(bool, weapon_ammo, false);
 	config_option(bool, weapon_icon, false);

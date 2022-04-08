@@ -6,6 +6,8 @@
 #include "LagCompensation.hpp"
 #include "Resolver.hpp"
 
+bool m_bShouldDelayShot = false;
+
 // im lazy, will eventually throw this in the math class
 static float normalize_float(float angle)
 {
@@ -398,7 +400,9 @@ namespace Engine
 
 			// we could possibly put this at the top of this but it's probably better if we set all of our data before storing this variable.
 			if (previous_record->m_bIsDormant && !record->m_bIsDormant)
-				record->m_bShouldDelayShot = true;
+				m_bShouldDelayShot = true;
+			else
+				m_bShouldDelayShot = false;
 		}
 		else {
 			record->m_flChokeTime = Interfaces::m_pGlobalVars->interval_per_tick;

@@ -382,6 +382,38 @@ namespace Engine
 			player_damage.player = target;
 			player_damage.damage = gameEvent->GetInt(XorStr("dmg_health"));
 			player_damage.hitgroup = gameEvent->GetInt(XorStr("hitgroup"));
+
+			if (player_damage.hitgroup == Hitgroup_Head)
+			{
+				auto lagData = Engine::LagCompensation::Get()->GetLagData(target->m_entIndex);
+				if (lagData.IsValid() && !this->m_Shapshots.empty()) {
+					switch (this->m_Shapshots.front().ResolverType) {
+					case EResolverModes::RESOLVE_STAND:
+						// predicting updates or freestanding them.
+						if (Engine::g_ResolverData[target->m_entIndex].m_bPredictingUpdates || Engine::g_ResolverData[target->m_entIndex].m_bCollectedFreestandData)
+							break;
+
+						// this was this previous sanity check before i changed it.
+						// i bet you can see why i did.
+						//if (!Engine::g_ResolverData[player->m_entIndex].m_bPredictingUpdates && !Engine::g_ResolverData[player->m_entIndex].m_bCollectedFreestandData)
+						//	break;
+
+						// valid move data.
+						if (Engine::g_ResolverData[target->m_entIndex].m_bCollectedValidMoveData) {
+							// clear any past yaws.
+							lagData->m_flLastMoveYaw.clear();
+
+							// send back our LastMove LBY.
+							lagData->m_flLastMoveYaw.push_front(Engine::g_ResolverData[target->m_entIndex].m_sMoveData.m_flLowerBodyYawTarget);
+
+							lagData->m_bHitLastMove = true;
+						}
+						break;
+					default:
+						break;
+					}
+				}
+			}
 			break;
 		}
 		case hash_32_fnv1a_const("bullet_impact"):
@@ -424,6 +456,8 @@ namespace Engine
 				lagData->m_iMissedShots = 0;
 				lagData->m_iMissedShotsLBY = 0;
 				g_Vars.globals.m_iFiredShots = 0;
+				//lagData->m_bHitLastMove = false;
+				//lagData->m_flLastMoveYaw.clear();
 			}
 
 			break;
@@ -436,6 +470,36 @@ namespace Engine
 					lagData->m_iMissedShots = 0;
 					lagData->m_iMissedShotsLBY = 0;
 					g_Vars.globals.m_iFiredShots = 0;
+					lagData->m_bHitLastMove = false;
+					lagData->m_flLastMoveYaw.clear();
+				}
+			}
+
+			break;
+		}
+		case hash_32_fnv1a_const("round_end"):
+		{
+			for (int i = 1; i < Interfaces::m_pGlobalVars->maxClients; ++i) {
+				auto lagData = Engine::LagCompensation::Get()->GetLagData(i);
+				if (lagData.IsValid()) {
+					lagData->m_iMissedShots = 0;
+					lagData->m_iMissedShotsLBY = 0;
+					g_Vars.globals.m_iFiredShots = 0;
+				}
+			}
+
+			break;
+		}
+		case hash_32_fnv1a_const("cs_pre_restart"): 
+		{
+			for (int i = 1; i < Interfaces::m_pGlobalVars->maxClients; ++i) {
+				auto lagData = Engine::LagCompensation::Get()->GetLagData(i);
+				if (lagData.IsValid()) {
+					lagData->m_iMissedShots = 0;
+					lagData->m_iMissedShotsLBY = 0;
+					g_Vars.globals.m_iFiredShots = 0;
+					lagData->m_bHitLastMove = false;
+					lagData->m_flLastMoveYaw.clear();
 				}
 			}
 
@@ -467,37 +531,6 @@ namespace Engine
 		auto data = AnimationSystem::Get()->GetAnimationData(player->m_entIndex);
 		if (data) {
 			data->m_flLastScannedYaw = record->m_flEyeYaw;
-		}
-
-		// same goes with this reese, this would more than likely help our last moving resolver
-		// it might be better to just fucking test it though, who knows
-		auto lagData = Engine::LagCompensation::Get()->GetLagData(player->m_entIndex);
-		if (lagData.IsValid()) {
-			switch (snapshot.ResolverType) {
-			case EResolverModes::RESOLVE_STAND1:
-				// predicting updates or freestanding them.
-				if (Engine::g_ResolverData[player->m_entIndex].m_bPredictingUpdates || Engine::g_ResolverData[player->m_entIndex].m_bCollectedFreestandData)
-					break;
-
-				// this was this previous sanity check before i changed it.
-				// i bet you can see why i did.
-				//if (!Engine::g_ResolverData[player->m_entIndex].m_bPredictingUpdates && !Engine::g_ResolverData[player->m_entIndex].m_bCollectedFreestandData)
-				//	break;
-
-				// valid move data.
-				if (Engine::g_ResolverData[player->m_entIndex].m_bCollectedValidMoveData) {
-					// clear any past yaws.
-					lagData->m_flLastMoveYaw.clear();
-
-					// send back our LastMove LBY.
-					lagData->m_flLastMoveYaw.push_front(Engine::g_ResolverData[player->m_entIndex].m_sMoveData.m_flLowerBodyYawTarget);
-
-					lagData->m_bHitLastMove = true;
-				}
-				break;
-			default:
-				break;
-			}
 		}
 	}
 
