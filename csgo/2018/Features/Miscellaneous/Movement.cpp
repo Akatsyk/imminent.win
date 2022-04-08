@@ -421,7 +421,9 @@ namespace Interfaces
 						// Interfaces::m_pClientState->m_nChokedCommands()
 						if (Interfaces::m_pGlobalVars->curtime < g_Vars.globals.m_flBodyPred) {
 
-								if (Interfaces::m_pClientState->m_nChokedCommands() == 2) {
+							cmd->viewangles.y += 144;
+
+							if (Interfaces::m_pClientState->m_nChokedCommands() == 2) {
 
 								// todo
 								// add tick shifting to make this work properly

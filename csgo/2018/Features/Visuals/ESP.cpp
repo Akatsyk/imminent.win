@@ -1684,6 +1684,20 @@ void CEsp::DrawInfo(C_CSPlayer* player, BBox_t bbox, player_info_t player_info) 
 				//if (current->m_bResolved)
 					g_Vars.globals.m_vecTextInfo[player->EntIndex()].emplace_back(FloatColor(0, 255, 0, (int)(180 * m_flAlpha[player->EntIndex()])), Engine::g_ResolverData[player->EntIndex()].m_sResolverMode);
 
+					std::stringstream msg;
+
+					float flTimeTillFlick = resolver_data.flNextBodyUpdate - player->m_flAnimationTime();
+					Math::NormalizeFloat(flTimeTillFlick);
+
+					if (flTimeTillFlick < 2.f &&
+				        flTimeTillFlick > 0.0000001f) {
+						msg << XorStr("Flick: ") << float(flTimeTillFlick);
+					}
+					else {
+						msg << XorStr("Flick: ?");
+					}
+
+					g_Vars.globals.m_vecTextInfo[player->EntIndex()].emplace_back(FloatColor(0, 255, 0, (int)(180 * m_flAlpha[player->EntIndex()])), msg.str());
 				//else
 				//	g_Vars.globals.m_vecTextInfo[player->EntIndex()].emplace_back(FloatColor(255, 0, 0, (int)(180 * m_flAlpha[player->EntIndex()])), XorStr("R"));
 				
