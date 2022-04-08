@@ -33,6 +33,12 @@ extern int LastShotTime;
 // TODO: 
 // Refactoring
 // Rework exploits
+enum HitscanMode : int {
+	NORMAL = 0,
+	LETHAL = 1,
+	LETHAL2 = 3,
+	PREFER = 4
+};
 
 enum OverrideConditions {
 	OnShot,
@@ -190,7 +196,7 @@ namespace Interfaces
 		bool preferHead = false;
 		bool preferBody = false;
 		bool hasLethal = false;
-		bool onlyHead = true;
+		bool onlyHead = false;
 		bool hasCenter = false;
 	};
 
@@ -260,6 +266,7 @@ namespace Interfaces
 		int m_iDelay = 0;
 
 		bool m_bDelayedHeadAim = false;
+		float m_bniggerhead = false;
 
 		CVariables::RAGE* rbot = nullptr;
 
@@ -300,21 +307,21 @@ namespace Interfaces
 			}
 
 			switch (hitbox->group) {
-			case Hitgroup_Head:
-				ps = m_rage_data->rbot->point_scale;
-				return (override_hitscan ? m_rage_data->rbot->bt_hitboxes_head : m_rage_data->rbot->hitboxes_head) && !g_Vars.rage.prefer_body.enabled;
-				break;
-			case Hitgroup_Neck: // just neck
-				ps = m_rage_data->rbot->point_scale;
-				return  (override_hitscan ? m_rage_data->rbot->bt_hitboxes_neck : m_rage_data->rbot->hitboxes_neck) && !g_Vars.rage.prefer_body.enabled;
-				break;
 			case Hitgroup_Chest:
 				ps = m_rage_data->rbot->point_scale;
-				return  override_hitscan ? m_rage_data->rbot->bt_hitboxes_chest : m_rage_data->rbot->hitboxes_chest;
+				return  override_hitscan ? m_rage_data->rbot->bt_hitboxes_chest : m_rage_data->rbot->hitboxes_chest && !g_Vars.rage.prefer_body.enabled;
 				break;
 			case Hitgroup_Stomach:
 				ps = m_rage_data->rbot->body_point_scale;
-				return  override_hitscan ? m_rage_data->rbot->bt_hitboxes_stomach : m_rage_data->rbot->hitboxes_stomach;
+				return  override_hitscan ? m_rage_data->rbot->bt_hitboxes_stomach : m_rage_data->rbot->hitboxes_stomach && !g_Vars.rage.prefer_body.enabled;
+				break;
+			case Hitgroup_Head:
+				ps = m_rage_data->rbot->point_scale;
+				return (override_hitscan ? m_rage_data->rbot->bt_hitboxes_head : m_rage_data->rbot->hitboxes_head && !g_Vars.rage.prefer_body.enabled);
+				break;
+			case Hitgroup_Neck: // just neck
+				ps = m_rage_data->rbot->point_scale;
+				return  (override_hitscan ? m_rage_data->rbot->bt_hitboxes_neck : m_rage_data->rbot->hitboxes_neck && !g_Vars.rage.prefer_body.enabled);
 				break;
 			case Hitgroup_RightLeg:
 			case Hitgroup_LeftLeg:
@@ -336,8 +343,6 @@ namespace Interfaces
 
 		// should override condition
 		virtual bool OverrideHitscan(C_CSPlayer* player, Engine::C_LagRecord* record);
-
-		virtual bool IsRecordValid(C_CSPlayer* player, Engine::C_LagRecord* record);
 
 		// return true if rage enabled
 		virtual bool SetupRageOptions();
@@ -370,6 +375,8 @@ namespace Interfaces
 		// return true if target is valid
 		__forceinline int GeneratePoints(C_CSPlayer* player, std::vector<C_AimTarget>& aim_targets, std::vector<C_AimPoint>& aim_points);
 		virtual Engine::C_LagRecord* GetBestLagRecord(C_CSPlayer* player, Engine::C_BaseLagRecord* backup);
+
+		virtual bool IsRecordValid(C_CSPlayer* player, Engine::C_LagRecord* record);
 
 		__forceinline float GetDamage(C_CSPlayer* player, Vector vecPoint, Engine::C_LagRecord* record, int hitboxIdx, bool bCalculatePoint = false);
 
@@ -570,7 +577,7 @@ namespace Interfaces
 	bool C_Ragebot::RunInternal() {
 		auto cmd_backup = *m_rage_data->m_pCmd.Xor();
 
-		m_rage_data->m_bResetCmd = true;
+		//m_rage_data->m_bResetCmd = true;
 		m_rage_data->m_bRePredict = false;
 		m_rage_data->m_bPredictedScope = false;
 		m_rage_data->m_bNoNeededScope = true;
@@ -581,9 +588,9 @@ namespace Interfaces
 		//ILoggerEvent::Get( )->PushEvent( std::to_string( m_rage_data->m_flInaccuracy ), FloatColor::White, true, "debug" );
 
 		auto success = RunHitscan();
-		if (success.first) {
-			m_rage_data->m_bResetCmd = false;
-		}
+		//if( success.first ) {
+		//	m_rage_data->m_bResetCmd = false;
+		//}
 
 		const bool bOnLand = !(Engine::Prediction::Instance().GetFlags() & FL_ONGROUND) && m_rage_data->m_pLocal->m_fFlags() & FL_ONGROUND;
 
@@ -610,7 +617,7 @@ namespace Interfaces
 						RemoveButtons(IN_BACK);
 					}
 
-					m_rage_data->m_bResetCmd = false;
+					//m_rage_data->m_bResetCmd = false;
 				}
 			}
 
@@ -641,7 +648,7 @@ namespace Interfaces
 			//m_rage_data->m_pWeapon->m_zoomLevel( ) = 1;
 			m_rage_data->m_bPredictedScope = true;
 			m_rage_data->m_bRePredict = true;
-			m_rage_data->m_bResetCmd = false;
+			//m_rage_data->m_bResetCmd = false;
 		}
 
 		auto correction = m_rage_data->m_pLocal->m_aimPunchAngle() * g_Vars.weapon_recoil_scale->GetFloat();
@@ -714,6 +721,7 @@ namespace Interfaces
 
 			m_rage_data->m_pCmd->viewangles = angles_spread;
 		}
+
 
 		if (m_rage_data->m_bResetCmd) {
 			*m_rage_data->m_pCmd.Xor() = cmd_backup;
@@ -967,7 +975,7 @@ namespace Interfaces
 				//}
 
 				auto bHit = bIsCapsule ?
-					Math::IntersectSegmentToSegment(m_rage_data->m_vecEyePos, vecEnd, vecMin, vecMax, flHitboxRadius) : Math::IntersectionBoundingBox(m_rage_data->m_vecEyePos, vecEnd, vecMin, vecMax); //: ( tr.hit_entity == pPoint->target->player && ( tr.hitgroup >= Hitgroup_Head && tr.hitgroup <= Hitgroup_RightLeg ) || tr.hitgroup == Hitgroup_Gear );
+					Math::IntersectSegmentToSegment(m_rage_data->m_vecEyePos, vecEnd, vecMin, vecMax, flHitboxRadius) : Math::IntersectionBoundingBox(m_rage_data->m_vecEyePos, vecEnd, vecMin, vecMax) && (tr.hit_entity == pPoint->target->player && (tr.hitgroup >= Hitgroup_Head && tr.hitgroup <= Hitgroup_RightLeg) || tr.hitgroup == Hitgroup_Gear);
 
 				if (bHit) {
 					iHits++;
@@ -1022,16 +1030,15 @@ namespace Interfaces
 		if (!m_rage_data->m_pLocal->CanShoot())
 			return false;
 
-		// forcing this LOL!
-		if (point->target->player->m_vecVelocity().Length() > 240.f || m_bShouldDelayShot) {
-			float delay = 0.22;
-			float nextShotTime = this->m_rage_data->m_pWeaponInfo->m_flCycleTime + TICKS_TO_TIME(LastShotTime);
-			if ((((m_rage_data->m_pWeaponInfo->m_flCycleTime * delay)
-				+ (m_rage_data->m_pWeaponInfo->m_flCycleTime * delay)) + nextShotTime) > TICKS_TO_TIME(Interfaces::m_pGlobalVars->tickcount)) {
-				m_rage_data->m_pCmd->buttons &= ~IN_ATTACK;
-				return false;
-			}
-		}
+		//if( m_rage_data->rbot->shotdelay ) {
+		//	float delay = m_rage_data->rbot->shotdelay_amount * 0.01f;
+		//	float nextShotTime = this->m_rage_data->m_pWeaponInfo->m_flUnknownFloat0 + TICKS_TO_TIME( LastShotTime );
+		//	if( ( ( ( m_rage_data->m_pWeaponInfo->m_flUnknownFloat0 * delay )
+		//		+ ( m_rage_data->m_pWeaponInfo->m_flUnknownFloat0 * delay ) ) + nextShotTime ) > TICKS_TO_TIME( Interfaces::m_pGlobalVars->tickcount ) ) {
+		//		m_rage_data->m_pCmd->buttons &= ~IN_ATTACK;
+		//		return false;
+		//	}
+		//}
 
 		if (m_rage_data->rbot->delay_shot_on_unducking && m_rage_data->m_pLocal->m_flDuckAmount() >= 0.125f) {
 			if (g_Vars.globals.m_flPreviousDuckAmount > m_rage_data->m_pLocal->m_flDuckAmount()) {
@@ -1086,7 +1093,6 @@ namespace Interfaces
 		//	}
 		//}
 
-		// we can hitchance them & check if accry boost is valid.
 		if (hitchance > 0.0f && ShouldHitchance()) {
 			// we cannot hitchance the player or no valid acrry boost then we failed hitchance.
 			if ((!Hitchance(point, start, hitchance * 0.01f) || (m_rage_data->rbot->accuracy_boost && !AccuracyBoost(point, start, m_rage_data->rbot->accuracy_boost_amount * 0.01f))) || ((m_rage_data->m_flInaccuracy + m_rage_data->m_flSpread > (0.04f - (m_rage_data->rbot->doubletap_hitchance / 3000)) && !m_rage_data->m_pWeaponInfo->m_iWeaponType == WEAPONTYPE_SNIPER_RIFLE))) {
@@ -1121,8 +1127,8 @@ namespace Interfaces
 		if (!local || local->IsDead())
 			return;
 
-		if ((m_rage_data->rbot->point_scale <= 0.f || m_rage_data->rbot->body_point_scale <= 0.f) && m_rage_data->m_pWeapon && hitbox->m_flRadius > 0.0f) {
-			pointScale = 0.91f; // we can go high here because the new multipoint is perfect
+		if (((m_rage_data->rbot->point_scale <= 0.f && hitboxIndex == HITBOX_HEAD) || (m_rage_data->rbot->body_point_scale <= 0.f && hitboxIndex != HITBOX_HEAD)) && m_rage_data->m_pWeapon && hitbox->m_flRadius > 0.0f) {
+			pointScale = hitboxIndex == HITBOX_HEAD ? 0.82f : 0.74f; // 0.91; // we can go high here because the new multipoint is perfect
 
 			float spreadCone = Engine::Prediction::Instance()->GetSpread() + Engine::Prediction::Instance()->GetInaccuracy();
 			float dist = centerTrans.Distance(m_rage_data->m_vecEyePos);
@@ -1152,7 +1158,6 @@ namespace Interfaces
 					d1 *= -1.f;
 
 				// optimal point for feet
-				// this was commented; uncommented it for testing.
 				AddPoint(player, record, side, points,
 					Vector(center.x, center.y, center.z + d1).Transform(boneMatrix[hitbox->bone]),
 					hitbox, hitboxSet, true
@@ -1176,7 +1181,7 @@ namespace Interfaces
 		else {
 			float r = hitbox->m_flRadius * pointScale;
 
-			if (hitboxIndex == HITBOX_HEAD && !m_rage_data->m_bDelayedHeadAim) {
+			if (hitboxIndex == HITBOX_HEAD && !m_rage_data->m_bniggerhead) {
 
 				// always adding these (they suck)
 				Vector right{ hitbox->bbmax.x, hitbox->bbmax.y, hitbox->bbmax.z + (hitbox->m_flRadius * 0.5f) };
@@ -1195,7 +1200,7 @@ namespace Interfaces
 
 				if (m_rage_data->rbot->mp_hitboxes_head) {
 					constexpr float rotation = 0.70710678f;
-
+					///
 					// ok, this looks ghetto as shit but we have to clamp these to not have these be off too much
 					pointScale = std::clamp<float>(pointScale, 0.1f, 0.95f);
 					r = hitbox->m_flRadius * pointScale;
@@ -1322,12 +1327,11 @@ namespace Interfaces
 								p.isLethal = true;
 								target.hasLethal = true;
 							}
-
-							target.onlyHead = false;
+							target.onlyHead = target.preferHead;
 						}
 
 						if (p.center) {
-							target.hasCenter = true;
+							target.hasCenter = false;
 						}
 
 						// is this point valid? fuck yeah, let's push back
@@ -1381,7 +1385,7 @@ namespace Interfaces
 
 			switch (m_rage_data->rbot->target_selection) {
 			case SELECT_HIGHEST_DAMAGE: {
-				float damageFirstTarget, damageSecondTarget;
+				float damageFirstTarget{}, damageSecondTarget{};
 
 				for (auto& p : a->points)
 					damageFirstTarget += p.damage;
@@ -1474,7 +1478,7 @@ namespace Interfaces
 			float flMaxBodyDamage = Autowall::ScaleDamage(p.target->player, m_rage_data->m_pWeaponInfo->m_iWeaponDamage, m_rage_data->m_pWeaponInfo->m_flArmorRatio, Hitgroup_Stomach);
 			float flMaxHeadDamage = Autowall::ScaleDamage(p.target->player, m_rage_data->m_pWeaponInfo->m_iWeaponDamage, m_rage_data->m_pWeaponInfo->m_flArmorRatio, Hitgroup_Head);
 
-			if (p.isLethal) {
+			if (p.isLethal = true) {
 				// don't shoot at head if we can shoot body and kill enemy
 				if (!p.isBody) {
 					continue; // go to next point
@@ -1494,7 +1498,7 @@ namespace Interfaces
 			}
 			else {
 				// if damage to the head is higher than hp, prioritize head or safe points
-				if (int(flMaxHeadDamage) > iHealth) {
+				if (int(flMaxHeadDamage) >= iHealth) {
 					// don't shoot at body if we can shoot head and kill enemy
 					if (!p.isHead) {
 						continue; // go to next point
@@ -1566,7 +1570,7 @@ namespace Interfaces
 
 						m_rage_data->m_pCmd->tick_count = targedt;
 
-						printf("tickcount %i\n", m_rage_data->m_pCmd->tick_count);
+						//printf( "tickcount %i\n", m_rage_data->m_pCmd->tick_count );
 
 						if (m_lag_data.IsValid()) {
 							std::stringstream msg;
@@ -1672,7 +1676,7 @@ namespace Interfaces
 									buffer = XorStr("none");
 								}
 
-								msg << XorStr("dmg: ") << int(bestPoint->damage) << XorStr(" | ");
+								msg << XorStr("fired shot | dmg: ") << int(bestPoint->damage) << XorStr(" | ");
 								msg << XorStr("hitgroup: ") << TranslateHitbox(bestPoint->hitboxIndex).c_str() << XorStr("(") << int(bestPoint->pointscale * 100.f) << XorStr("%%%%)") << XorStr(" | ");
 								msg << XorStr("flick: ") << int(bestPoint->target->record->m_iResolverMode == 6) << XorStr(" | ");
 								msg << XorStr("bt: ") << Interfaces::m_pGlobalVars->tickcount - TIME_TO_TICKS(bestPoint->target->record->m_flSimulationTime) << XorStr(" | ");
@@ -1682,8 +1686,8 @@ namespace Interfaces
 								msg << XorStr("flag: ") << buffer.data() << XorStr(" | ");
 								msg << XorStr("player: ") << FixedStrLength(info.szName).data() << XorStr(" | ");
 
-								ILoggerEvent::Get()->PushEvent(msg.str(), FloatColor(0.8f, 0.8f, 0.8f), true, XorStr("fired shot "));
-								//ILoggerEvent::Get()->PushEvent(std::to_string(m_lag_data->m_iMissedShots), FloatColor(0.8f, 0.8f, 0.0f), true, XorStr(""));
+								ILoggerEvent::Get()->PushEvent(msg.str(), FloatColor(0.8f, 0.8f, 0.8f), true);
+								//ILoggerEvent::Get()->PushEvent(std::to_string(m_lag_data->m_iMissedShots), FloatColor(0.8f, 0.8f, 0.0f), false, XorStr(""));
 							}
 						}
 
@@ -1695,7 +1699,6 @@ namespace Interfaces
 							if (g_Vars.esp.hitmatrix)
 								IChams::Get()->AddHitmatrix(bestPoint->target->player, bestPoint->target->record->GetBoneMatrix());
 
-							// TODO; add this! we will need to add in the function back to our esp too!
 							//if( g_Vars.esp.hitskeleton )
 							//	IEsp::Get( )->AddSkeletonMatrix( bestPoint->target->player, bestPoint->target->record->GetBoneMatrix( ) );
 						}
@@ -1919,15 +1922,14 @@ namespace Interfaces
 
 		auto record = GetBestLagRecord(player, &backup);
 		if (!record || !IsRecordValid(player, record)) {
-			// this could be another issue right here; this is probably why we don't shoot if there are no records, which is really retarded.
 			backup.Apply(player);
-			//return 0; // <-- removed for testing
+			// at least i am pretty sure.
+			//return 0; <-- THIS NEEDS TO BE REMOVED OR ELSE IT WILL NOT SHOOT WITHOUT A VALID RECORD!
 		}
 
 		backup.Apply(player);
 
 		auto hitboxSet = hdr->pHitboxSet(player->m_nHitboxSet());
-
 		if (!hitboxSet)
 			return 0;
 
@@ -1942,14 +1944,11 @@ namespace Interfaces
 			}
 		}
 
-		//aim_target.preferBody = ((m_rage_data->rbot->prefer_body || !(record->m_iFlags & FL_ONGROUND)) && this->OverrideHitscan(player, record));
-		//aim_target.preferHead = !aim_target.preferBody;
-
 		// eventually remove the onground check or put it in as the override hitscan check.
 		aim_target.preferBody = this->OverrideHitscan(player, record);
 
 		// eventually add in some menu variables and change this out into something else.
-		aim_target.preferHead = record->m_bResolved && !aim_target.preferBody;//!aim_target.preferBody;
+		aim_target.preferHead = record->m_bResolved;//!aim_target.preferBody;
 
 		auto addedPoints = 0;
 		for (int i = 0; i < HITBOX_MAX; i++) {
@@ -1962,9 +1961,11 @@ namespace Interfaces
 			bool bDelayLimb = false;
 			auto bIsLimb = hitbox->group == Hitgroup_LeftArm || hitbox->group == Hitgroup_RightArm || hitbox->group == Hitgroup_RightLeg || hitbox->group == Hitgroup_LeftLeg;
 			if (bIsLimb) {
+				// we're not moving, let's delay the limb shot
 				if (m_rage_data->m_pLocal->m_vecVelocity().Length2D() < 3.25f) {
 					bDelayLimb = true;
 				}
+				// we're moving, let's not shoot at limbs at all
 				else {
 					continue;
 				}
@@ -2005,54 +2006,40 @@ namespace Interfaces
 
 	Engine::C_LagRecord* C_Ragebot::GetBestLagRecord(C_CSPlayer* player, Engine::C_BaseLagRecord* backup) {
 		auto lagData = Engine::LagCompensation::Get()->GetLagData(player->m_entIndex);
-		if (!lagData.IsValid() || lagData->m_History.empty()) {
-			//if (lagData->m_History.empty())
-			//	ILoggerEvent::Get()->PushEvent("RECORDS ARE EMPTY!", FloatColor(0.8f, 0.8f, 0.8f), true, XorStr("lrDebug "));
-			//else if (!lagData.IsValid())
-			//	ILoggerEvent::Get()->PushEvent("INVALID DATA; RETURNING NULLPTR", FloatColor(0.8f, 0.8f, 0.8f), true, XorStr("lrDebug "));
-
+		if (!lagData.IsValid() || lagData->m_History.empty())
 			return nullptr;
-		}
 
 		auto& record = lagData->m_History.front();
 		if (!record.m_bIsValid) {
-			//ILoggerEvent::Get()->PushEvent("INVALID RECORD; RETURNING NULLPTR", FloatColor(0.8f, 0.8f, 0.8f), true, XorStr("lrDebug "));
 			return nullptr;
 		}
 
 		int recordsCount = 0;
 		Engine::C_LagRecord* arrRecords[64] = { nullptr };
 
-		// possibly switch this to crbegin & crend
 		for (auto it = lagData->m_History.begin(); it != lagData->m_History.end(); ++it) {
+			// so i default back to this check instead of the one above.
 			if (it->m_bSkipDueToResolver) {
-				//ILoggerEvent::Get()->PushEvent("OUT OF BOUNDS; BREAKING ITERATION", FloatColor(0.8f, 0.8f, 0.8f), true, XorStr("lrIterationDebug "));
 				continue;
 			}
 
 			if (!it->m_bIsValid || !IsRecordValid(player, &*it)) {
-				//ILoggerEvent::Get()->PushEvent("INVALID RECORD; BREAKING ITERATION", FloatColor(0.8f, 0.8f, 0.8f), true, XorStr("lrIterationDebug "));
 				continue;
 			}
 
 			arrRecords[recordsCount] = &*it;
 			recordsCount++;
 
-			//if (it->m_bTeleporting) {
-			//	ILoggerEvent::Get()->PushEvent("RECORDS INVALIDATED; BREAKING ITERATION", FloatColor(0.8f, 0.8f, 0.8f), true, XorStr("lrIterationDebug "));
+			// this for some reason usually always returns true.
+			//if (it->m_bTeleportDistance) {
 			//	break;
 			//}
 
-			if (recordsCount + 1 >= 64) {
-				//ILoggerEvent::Get()->PushEvent("OVER LIMIT; CLEARING FIRST RECORD", FloatColor(0.8f, 0.8f, 0.8f), true, XorStr("lrIterationDebug "));
-				lagData->m_History.pop_front();
-				--recordsCount;
-				//break; <-- this break might be causing issues
-			}
+			if (recordsCount + 1 >= 64)
+				break;
 		}
 
 		if (recordsCount <= 1) {
-			//ILoggerEvent::Get()->PushEvent("RECORDS < 1", FloatColor(0.8f, 0.8f, 0.8f), true, XorStr("lrDebug "));
 			return &record;
 		}
 
@@ -2065,7 +2052,6 @@ namespace Interfaces
 
 			// if best record null, set best record to current record
 			if (!pBestRecord) {
-				//ILoggerEvent::Get()->PushEvent("SETTING BEST RECORD", FloatColor(0.8f, 0.8f, 0.8f), true, XorStr("lrLoopDebug "));
 				pBestRecord = currentRecord;
 				continue; // go to next record
 			}
@@ -2079,7 +2065,6 @@ namespace Interfaces
 		}
 
 		if (!pBestRecord) {
-			//ILoggerEvent::Get()->PushEvent("INVALID BEST RECORD!", FloatColor(0.8f, 0.8f, 0.8f), true, XorStr("lrDebug "));
 			return &record;
 		}
 
@@ -2087,7 +2072,7 @@ namespace Interfaces
 	}
 
 	bool C_Ragebot::IsRecordValid(C_CSPlayer* player, Engine::C_LagRecord* record) {
-		return !Engine::LagCompensation::Get()->IsRecordOutOfBounds(*record, 0.2f);
+		return Engine::LagCompensation::Get()->IsRecordOutOfBounds(*record, 0.2f);
 	}
 
 	bool C_Ragebot::AimAtPoint(C_AimPoint* bestPoint) {
