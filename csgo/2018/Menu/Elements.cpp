@@ -445,6 +445,9 @@ namespace Menu {
 					GUI::Controls::Checkbox(XorStr("Ammo"), &g_Vars.esp.draw_ammo_bar);
 					GUI::Controls::ColorPicker(XorStr("Ammo color##color"), &g_Vars.esp.ammo_color);
 
+					GUI::Controls::Checkbox(XorStr("Shot Timer"), &g_Vars.esp.shot_timer);
+					GUI::Controls::ColorPicker(XorStr("Timer Color##color"), &g_Vars.esp.shot_color);
+
 					GUI::Controls::Checkbox(XorStr("LBY timer"), &g_Vars.esp.draw_lby_bar);
 					GUI::Controls::ColorPicker(XorStr("LBY timer color##color"), &g_Vars.esp.lby_color);
 

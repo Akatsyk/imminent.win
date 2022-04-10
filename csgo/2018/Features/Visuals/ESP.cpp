@@ -1502,7 +1502,7 @@ void CEsp::AmmoBar(C_CSPlayer* player, BBox_t bbox) {
 		auto animLayer = player->m_AnimOverlay().Element(1);
 		if (animLayer.m_pOwner && pWeaponData->m_iWeaponType != WEAPONTYPE_GRENADE && pWeaponData->m_iWeaponType != WEAPONTYPE_KNIFE && pWeaponData->m_iWeaponType != WEAPONTYPE_C4) 
 		{
-			const int m_iRenderWidth = bbox.w * 2 - 2;
+			const int m_iRenderWidth = bbox.w - 2;
 
 			const float m_flShotCooldown = pWeaponData->m_flCycleTime;
 			const float m_flNextShotTime = pWeapon->m_flNextPrimaryAttack();

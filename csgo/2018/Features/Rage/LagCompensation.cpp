@@ -192,13 +192,13 @@ namespace Engine
 		if (!pLocal)
 			return false;
 
-		float correct = 0;
-		correct += Interfaces::m_pEngine->GetNetChannelInfo()->GetLatency(FLOW_OUTGOING);
-		correct += Interfaces::m_pEngine->GetNetChannelInfo()->GetLatency(FLOW_INCOMING);
+		float correct = 0;//lagData.Xor()->m_flLerpTime + lagData.Xor()->m_flOutLatency + lagData.Xor()->m_flServerLatency;
 		correct += lagData.Xor()->m_flLerpTime;
+		correct += pNetChannel.Xor()->GetLatency(0);
+		correct += pNetChannel.Xor()->GetLatency(1);
 		correct = std::clamp(correct, 0.f, g_Vars.sv_maxunlag->GetFloat());
 
-		int latencyTicks = std::max(0, TIME_TO_TICKS(Interfaces::m_pEngine->GetNetChannelInfo()->GetLatency(FLOW_OUTGOING)));
+		int latencyTicks = std::max(0, TIME_TO_TICKS(pNetChannel.Xor()->GetLatency(0)));
 		int serverTickCount = Interfaces::m_pEngine->GetServerTick() + latencyTicks + 1;
 		float serverTimeAtFrameEndFromLastFrame = TICKS_TO_TIME(serverTickCount - 1);
 
@@ -212,8 +212,7 @@ namespace Engine
 				return true; //record won't be valid anymore
 		}
 
-		// possibly changed out this curtime for TICKS_TO_TIME(pLocal->m_nTickBase())
-		float deltaTime = correct - (Interfaces::m_pGlobalVars->curtime - record.m_flSimulationTime);
+		float deltaTime = correct - (/*TICKS_TO_TIME(pLocal->m_nTickBase())*/Interfaces::m_pGlobalVars->curtime - record.m_flSimulationTime);
 		if (fabsf(deltaTime) > flTargetTime)
 			return true;
 
@@ -222,21 +221,27 @@ namespace Engine
 
 	void C_LagCompensation::SetupLerpTime() {
 		float updaterate = g_Vars.cl_updaterate->GetFloat();
-
 		float minupdaterate = g_Vars.sv_minupdaterate->GetFloat();
 		float maxupdaterate = g_Vars.sv_maxupdaterate->GetFloat();
+		//if (minupdaterate && maxupdaterate)
+		//	updaterate = maxupdaterate;
 
+		float flInterpRatio = g_Vars.cl_interp_ratio->GetFloat();
+		//if (flInterpRatio == 0.0f)
+		//	flInterpRatio = 1.0f;
+
+		float flLerpAmount = g_Vars.cl_interp->GetFloat();
 		float min_interp = g_Vars.sv_client_min_interp_ratio->GetFloat();
 		float max_interp = g_Vars.sv_client_max_interp_ratio->GetFloat();
 
-		float flLerpAmount = g_Vars.cl_interp->GetFloat();
-		float flLerpRatio = g_Vars.cl_interp_ratio->GetFloat();
-		flLerpRatio = Math::Clamp(flLerpRatio, min_interp, max_interp);
-		if (flLerpRatio == 0.0f)
-			flLerpRatio = 1.0f;
+		//if (min_interp && max_interp && max_interp != 1.f)
+		//	flInterpRatio = Math::Clamp(flInterpRatio, min_interp, max_interp);
 
-		float updateRate = Math::Clamp(updaterate, minupdaterate, maxupdaterate);
-		lagData->m_flLerpTime = std::fmaxf(flLerpAmount, flLerpRatio / updateRate);
+		//float updateRate = Math::Clamp(updaterate, minupdaterate, maxupdaterate);
+		float_t flUpdateRate  = std::clamp(updaterate, minupdaterate, maxupdaterate);
+		float_t flLerpRatio   = std::clamp(flInterpRatio, min_interp, max_interp);
+		lagData->m_flLerpTime = std::clamp(flLerpRatio / flUpdateRate, flLerpAmount, 1.0f);
+		//lagData->m_flLerpTime = std::fmaxf(flLerpAmount, flInterpRatio / updaterate);
 
 		auto netchannel = Encrypted_t<INetChannelInfo>(Interfaces::m_pEngine->GetNetChannelInfo());
 		lagData->m_flOutLatency = netchannel->GetLatency(FLOW_OUTGOING);
@@ -278,6 +283,11 @@ namespace Engine
 			return;
 		}
 	
+		// no need to store insane amount of data
+		//while (pThis->m_History.size() > 24) {
+		//	pThis->m_History.pop_back();
+		//}
+
 		// no need to store insane amount of data
 		while (pThis->m_History.size() > int(1.0f / Interfaces::m_pGlobalVars->interval_per_tick)) { // TODO; eventually hook LevelInitPostEntity and set this as a variable in there so we get the most accurate server tickrate for this check!
 			pThis->m_History.pop_back();

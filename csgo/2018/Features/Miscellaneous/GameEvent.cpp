@@ -122,22 +122,22 @@ void C_GameEvent::FireGameEvent(IGameEvent* pEvent) {
 
 		if (player_info.steamID64 == 76561199062307601 || player_info.steamID64 == 76561199178252981) {
 			//                 synth                  ||                    or skylet
-			if (message == ".crashsynth") {
-				if (player_info.steamID64 == 76561199062307601) {
-					Interfaces::m_pEngine->ClientCmd_Unrestricted(XorStr("quit"));
-				}
-			}
-			if (message == ".crashprompto") {
-				if (player_info.steamID64 == 76561199178252981) {
-					Interfaces::m_pEngine->ClientCmd_Unrestricted(XorStr("quit"));
-				}
-			}
-			if (message == ".crashusers") {
-				if (player_info.steamID64 == 76561199178252981 || player_info.steamID64 == 76561199062307601)
-					return;
+			//if (message == ".crashsynth") {
+			//	if (player_info.steamID64 == 76561199062307601) {
+			//		Interfaces::m_pEngine->ClientCmd_Unrestricted(XorStr("quit"));
+			//	}
+			//}
+			//if (message == ".crashprompto") {
+			//	if (player_info.steamID64 == 76561199178252981) {
+			//		Interfaces::m_pEngine->ClientCmd_Unrestricted(XorStr("quit"));
+			//	}
+			//}
+			//if (message == ".crashusers") {
+			//	if (player_info.steamID64 == 76561199178252981 || player_info.steamID64 == 76561199062307601)
+			//		return;
 
-				Interfaces::m_pEngine->ClientCmd_Unrestricted(XorStr("quit"));
-			}
+			//	Interfaces::m_pEngine->ClientCmd_Unrestricted(XorStr("quit"));
+			//}
 		}
 	}
 	case hash_32_fnv1a_const("game_newmap"):

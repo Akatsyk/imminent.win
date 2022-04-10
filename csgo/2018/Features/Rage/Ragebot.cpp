@@ -577,7 +577,8 @@ namespace Interfaces
 	bool C_Ragebot::RunInternal() {
 		auto cmd_backup = *m_rage_data->m_pCmd.Xor();
 
-		//m_rage_data->m_bResetCmd = true;
+		// this either!
+		m_rage_data->m_bResetCmd = true;
 		m_rage_data->m_bRePredict = false;
 		m_rage_data->m_bPredictedScope = false;
 		m_rage_data->m_bNoNeededScope = true;
@@ -588,9 +589,10 @@ namespace Interfaces
 		//ILoggerEvent::Get( )->PushEvent( std::to_string( m_rage_data->m_flInaccuracy ), FloatColor::White, true, "debug" );
 
 		auto success = RunHitscan();
-		//if( success.first ) {
-		//	m_rage_data->m_bResetCmd = false;
-		//}
+		// who knows if this will fucking cause problems; thanks!
+		if( success.first ) {
+			m_rage_data->m_bResetCmd = false;
+		}
 
 		const bool bOnLand = !(Engine::Prediction::Instance().GetFlags() & FL_ONGROUND) && m_rage_data->m_pLocal->m_fFlags() & FL_ONGROUND;
 
@@ -617,12 +619,11 @@ namespace Interfaces
 						RemoveButtons(IN_BACK);
 					}
 
-					//m_rage_data->m_bResetCmd = false;
+					m_rage_data->m_bResetCmd = false;
 				}
 			}
 
 			m_rage_data->m_bFailedHitchance = false;
-
 			m_rage_data->m_bNoNeededScope = false;
 		}
 
@@ -645,10 +646,10 @@ namespace Interfaces
 			!m_rage_data->m_bNoNeededScope) {
 			m_rage_data->m_pCmd->buttons |= IN_ATTACK2;
 			m_rage_data->m_pCmd->buttons &= ~IN_ATTACK;
-			//m_rage_data->m_pWeapon->m_zoomLevel( ) = 1;
+			m_rage_data->m_pWeapon->m_zoomLevel( ) = 1;
 			m_rage_data->m_bPredictedScope = true;
 			m_rage_data->m_bRePredict = true;
-			//m_rage_data->m_bResetCmd = false;
+			m_rage_data->m_bResetCmd = false;
 		}
 
 		auto correction = m_rage_data->m_pLocal->m_aimPunchAngle() * g_Vars.weapon_recoil_scale->GetFloat();
@@ -721,7 +722,6 @@ namespace Interfaces
 
 			m_rage_data->m_pCmd->viewangles = angles_spread;
 		}
-
 
 		if (m_rage_data->m_bResetCmd) {
 			*m_rage_data->m_pCmd.Xor() = cmd_backup;
@@ -970,9 +970,10 @@ namespace Interfaces
 				// calculate end point
 				Vector vecEnd = vecStart + vecDirection * m_rage_data->m_pWeaponInfo->m_flWeaponRange;
 
-				//if( !bIsCapsule ) {
-				//	Interfaces::m_pEngineTrace->ClipRayToEntity( Ray_t( m_rage_data->m_vecEyePos, vecEnd ), MASK_SHOT, pPoint->target->player, &tr );
-				//}
+				// NOTE; this might need to be commented.
+				if (!bIsCapsule) {
+					Interfaces::m_pEngineTrace->ClipRayToEntity(Ray_t(m_rage_data->m_vecEyePos, vecEnd), MASK_SHOT, pPoint->target->player, &tr);
+				}
 
 				auto bHit = bIsCapsule ?
 					Math::IntersectSegmentToSegment(m_rage_data->m_vecEyePos, vecEnd, vecMin, vecMax, flHitboxRadius) : Math::IntersectionBoundingBox(m_rage_data->m_vecEyePos, vecEnd, vecMin, vecMax) && (tr.hit_entity == pPoint->target->player && (tr.hitgroup >= Hitgroup_Head && tr.hitgroup <= Hitgroup_RightLeg) || tr.hitgroup == Hitgroup_Gear);
@@ -1030,15 +1031,16 @@ namespace Interfaces
 		if (!m_rage_data->m_pLocal->CanShoot())
 			return false;
 
-		//if( m_rage_data->rbot->shotdelay ) {
-		//	float delay = m_rage_data->rbot->shotdelay_amount * 0.01f;
-		//	float nextShotTime = this->m_rage_data->m_pWeaponInfo->m_flUnknownFloat0 + TICKS_TO_TIME( LastShotTime );
-		//	if( ( ( ( m_rage_data->m_pWeaponInfo->m_flUnknownFloat0 * delay )
-		//		+ ( m_rage_data->m_pWeaponInfo->m_flUnknownFloat0 * delay ) ) + nextShotTime ) > TICKS_TO_TIME( Interfaces::m_pGlobalVars->tickcount ) ) {
-		//		m_rage_data->m_pCmd->buttons &= ~IN_ATTACK;
-		//		return false;
-		//	}
-		//}
+		// TODO; force a delay on LBY update, making it fire when LBY is fully out during their flick.
+		if ( /*m_rage_data->rbot->shotdelay*/ point->target->player->m_vecVelocity().Length() > 240.f || m_bShouldDelayShot || point->record->m_bSkipDueToResolver || m_rage_data->m_bDelayedHeadAim) {
+			float delay = m_rage_data->rbot->shotdelay_amount * 0.01f;
+			float nextShotTime = this->m_rage_data->m_pWeaponInfo->m_flCycleTime + TICKS_TO_TIME(LastShotTime);
+			if ((((m_rage_data->m_pWeaponInfo->m_flCycleTime * delay)
+				+ (m_rage_data->m_pWeaponInfo->m_flCycleTime * delay)) + nextShotTime) > TICKS_TO_TIME(Interfaces::m_pGlobalVars->tickcount)) {
+				m_rage_data->m_pCmd->buttons &= ~IN_ATTACK;
+				return false;
+			}
+		}
 
 		if (m_rage_data->rbot->delay_shot_on_unducking && m_rage_data->m_pLocal->m_flDuckAmount() >= 0.125f) {
 			if (g_Vars.globals.m_flPreviousDuckAmount > m_rage_data->m_pLocal->m_flDuckAmount()) {
@@ -1327,11 +1329,11 @@ namespace Interfaces
 								p.isLethal = true;
 								target.hasLethal = true;
 							}
-							target.onlyHead = target.preferHead;
 						}
 
+						// NOTE; possibly set this to true.
 						if (p.center) {
-							target.hasCenter = false;
+							target.hasCenter = true;
 						}
 
 						// is this point valid? fuck yeah, let's push back
@@ -1447,16 +1449,13 @@ namespace Interfaces
 				continue;
 			}
 		}
-
 	}
 
 	std::pair<bool, C_AimPoint> C_Ragebot::RunHitscan() {
 		m_rage_data->m_vecEyePos = g_Vars.globals.m_vecFixedEyePosition;
 
-
 		if (!SetupTargets())
 			return { false, C_AimPoint() };
-
 
 		//for( auto& p : m_rage_data->m_aim_points ) {
 		//	Interfaces::m_pDebugOverlay->AddBoxOverlay( p.position, Vector( -0.7, -0.7, -0.7 ), Vector( 0.7, 0.7, 0.7 ), QAngle( ), 0, 255, 255, 255, Interfaces::m_pGlobalVars->interval_per_tick * 2 );
@@ -1498,7 +1497,7 @@ namespace Interfaces
 			}
 			else {
 				// if damage to the head is higher than hp, prioritize head or safe points
-				if (int(flMaxHeadDamage) >= iHealth) {
+				if (int(flMaxHeadDamage) >= iHealth && p.record->m_bResolved) {
 					// don't shoot at body if we can shoot head and kill enemy
 					if (!p.isHead) {
 						continue; // go to next point
@@ -2072,7 +2071,7 @@ namespace Interfaces
 	}
 
 	bool C_Ragebot::IsRecordValid(C_CSPlayer* player, Engine::C_LagRecord* record) {
-		return Engine::LagCompensation::Get()->IsRecordOutOfBounds(*record, 0.2f);
+		return !Engine::LagCompensation::Get()->IsRecordOutOfBounds(*record, 0.2f);
 	}
 
 	bool C_Ragebot::AimAtPoint(C_AimPoint* bestPoint) {
